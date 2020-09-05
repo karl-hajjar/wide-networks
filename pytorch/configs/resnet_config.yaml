@@ -1,0 +1,34 @@
+name:
+  "ResNet"
+
+architecture:
+  input_size: 28
+  in_channels: 1
+  n_blocks: 2
+  n_conv_layers: 2
+  kernel_size: 3
+  stride: 1
+  n_channels: 32
+  bias_conv: True
+  fc_dim: 256
+  n_fc_layers: 2
+  bias_fc: True
+  output_size: 10
+
+normalization:
+  name: "batch_norm_2d"
+
+activation:
+  name: "relu"
+
+loss:
+  name: "cross_entropy"
+  params:
+    reduction: "mean"
+
+optimizer:
+  name: "adam"
+  params:
+    lr: 1.0e-4
+    beta1: 0.9
+    beta2: 0.999

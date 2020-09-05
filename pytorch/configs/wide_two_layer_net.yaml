@@ -1,0 +1,19 @@
+architecture:
+  input_size: 20
+  hidden_layer_dim: 50
+
+activation:
+  name: "relu"
+
+loss:
+  name: "logistic"
+  params:
+    reduction: "mean"
+
+optimizer:
+  name: "sgd"
+  params:
+    lr: 1.0
+
+initializer:
+  name: "custom"

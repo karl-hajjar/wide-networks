@@ -1,0 +1,16 @@
+Click
+clickclick
+flask
+fastapi
+pandas
+numpy
+dateparser
+datetime
+pyyaml
+scikit-learn
+matplotlib
+seaborn
+torch
+pytorch-lightning
+torchvision
+tensorflow
