@@ -7,9 +7,14 @@ __pycache__/
 *.so
 
 # Data
+data
+resources
 
 # Experiments
 experiments
+
+# Logs
+logs
 
 # java extensions
 .classpath
