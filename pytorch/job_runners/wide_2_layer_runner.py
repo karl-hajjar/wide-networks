@@ -18,10 +18,10 @@ MAX_STEPS = int(3.5e5)
 
 Ks = [3, 4, 5, 6]
 Rs = [0.5, 1.0, 2.0]
-N_TRAINs = [64, 128, 256, 512, 1000, 5000, 10000]
-Ds = [5, 10, 15, 20, 25, 50, 128, 256, 512, 1000, 5000, 10000]
+N_TRAINs = [5000, 10000, 1000, 512, 256, 128, 64]
+Ds = [512, 1000, 5000, 10000, 256, 128, 50, 25, 20, 15, 10, 5]
 Ms = [10, 50, 100, 200, 500, 1000, 2000, 5000]
-BATCH_SIZES = [1, 32, 64, 128]
+BATCH_SIZES = [128, 64, 32, 1]
 
 
 class Wide2LayerRunner(JobRunner):
@@ -106,7 +106,8 @@ class Wide2LayerRunner(JobRunner):
             logging.info('Test results :\n{}\n'.format(test_results))
 
             # save all training val and test results to pickle file
-            pickle.dump(two_layer_net.results, open(os.path.join(self.trial_dir, self.RESULTS_FILE), 'wb'))
+            with open(os.path.join(self.trial_dir, self.RESULTS_FILE), 'wb') as file:
+                pickle.dump(two_layer_net.results, file)
 
     def _log_experiment_info(self, k, r, batch_size, n, n_train, d, m):
         logging.info('Square root of the number of clusters k = {:,}'.format(k))

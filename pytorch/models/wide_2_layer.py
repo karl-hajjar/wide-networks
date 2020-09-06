@@ -114,7 +114,7 @@ class TwoLayerNet(BaseModel):
     def training_step(self, batch, batch_nb):
         x, y = batch
         y_0_1 = (y + 1) / 2  # converting target labels from {-1, 1} to {0, 1}.
-        y_hat = self(x)
+        y_hat = self.forward(x)
         loss = self.loss(y_hat, y_0_1)
 
         sample_margins = y * y_hat  # y assumed to have values in {-1, 1}
@@ -168,7 +168,7 @@ class TwoLayerNet(BaseModel):
         short_name = mode_to_short[mode]
 
         x, y = batch
-        y_hat = self(x)
+        y_hat = self.forward(x)
         y_0_1 = (y + 1) / 2  # converting target labels from {-1, 1} to {0, 1}.
 
         sample_margins = y * y_hat  # y assumed to have values in {-1, 1}
@@ -181,11 +181,6 @@ class TwoLayerNet(BaseModel):
 
         # margin and weights norm
         margin = sample_margins.min()
-        beta = self.beta
-        # normalized_margin = margin / beta
-        #
-        # smoothed_exp_m = smoothed_exp_margin(beta, sample_margins)
-        # smoothed_log_m = smoothed_logistic_margin(beta, sample_margins)
 
         return {'{}_loss'.format(short_name): self.loss(y_hat, y_0_1), '{}_likelihood'.format(short_name): likelihood,
                 '{}_accuracy'.format(short_name): acc, '{}_pred_proba'.format(short_name): pred_proba.mean(),
@@ -207,8 +202,6 @@ class TwoLayerNet(BaseModel):
         beta = self.beta
 
         normalized_margin = margin / beta
-        # margin = np.min([x['margin'] for x in outputs])
-        # sample_margins = torch.cat([x['sample_margins'] for x in outputs], dim=0)
         smoothed_exp_m = smoothed_exp_margin(beta, sample_margins)
         smoothed_log_m = smoothed_logistic_margin(beta, sample_margins)
 

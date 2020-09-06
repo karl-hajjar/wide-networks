@@ -39,7 +39,7 @@ class TestWide2LayerTrainer(unittest.TestCase):
         r, k, self.n, d = 0.5, 3, 700, 20
         self.n_train, self.n_val = 256, 256  # n_test = n - (n_train + n_val)
 
-        self.version = 'test_new_bound_wo_precision_n={}_d={}_m={}'.\
+        self.version = 'test_new_mac_n={}_d={}_m={}'.\
             format(self.n, d, config_dict['architecture']['hidden_layer_dim'])
 
         # config and net
@@ -114,9 +114,11 @@ class TestWide2LayerTrainer(unittest.TestCase):
         print('train results :\n{}'.format(test_results))
 
         results_path = os.path.join(SAVE_DIR, NAME, self.version, RESULTS_FILE)
-        pickle.dump(self.two_layer_net.results, open(results_path, 'wb'))
+        with open(results_path, 'wb') as file:
+            pickle.dump(self.two_layer_net.results, file)
 
-        results = pickle.load(open(results_path, 'rb'))
+        with open(results_path, 'rb') as file:
+            results = pickle.load(file)
 
         self.assertTrue(len(results['training']) == len(results['validation']) == self.two_layer_net.current_epoch + 1)
         self.assertTrue(len(results['test']) == 1)
