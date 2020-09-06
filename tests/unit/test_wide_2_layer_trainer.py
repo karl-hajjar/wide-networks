@@ -157,7 +157,7 @@ class TestWide2LayerTrainer(unittest.TestCase):
                 n = self.n - (self.n_train - self.n_val)
             self.assertTrue(res['margin'] <= res['smoothed_exp_margin'])
             self.assertTrue(res['smoothed_exp_margin'] <= (np.log(n) / self.beta + res['margin']))
-            self.assertTrue(res['smoothed_exp_margin'] <= res['smoothed_logistic_margin'])
+            self.assertTrue(res['smoothed_exp_margin'] <= res['smoothed_logistic_margin'] + PRECISION)
 
 
 if __name__ == '__main__':
