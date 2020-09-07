@@ -8,27 +8,33 @@ from . import set_plot_options
 
 
 def plot_metric_vs_other(x_metric, y_metric, ax=None, figsize=(10, 10), style='darkgrid', marker='+', color='r', linewidth=None,
-                         title=None, xlabel='x metric', ylabel='y metric'):
+                         title=None, xlabel=None, ylabel=None, legend=True):
     set_plot_options(style)
     if ax is None:
         plt.figure(figsize=figsize)
         ax = plt.gca()
-    assert len(y_metric) == len(x_metric), "x_metric and y_metric must have same length but metric 1 had length {:,} " \
-                                           "and metric2 had length {:,}".format(len(x_metric), len(y_metric))
+    assert len(y_metric) == len(x_metric), "x_metric and y_metric must have same length but x_metric had length {:,} " \
+                                           "and y_metric had length {:,}".format(len(x_metric), len(y_metric))
     # scatter y_metric values for all trials for each value of x_metric
     for i in range(len(y_metric)):
+        label = None
+        if i == 0:
+            label = 'randomized trials'
         ys = y_metric[i]
-        ax.scatter([x_metric[i]] * len(ys), ys, marker=marker, c=color)
+        ax.scatter([x_metric[i]] * len(ys), ys, marker=marker, c=color, label=label)
 
     # line plot trial means of y_metric vs x_metric
     y_means = np.mean(y_metric, axis=1)
-    ax.plot(x_metric, y_means, linewidth=linewidth)
+    ax.plot(x_metric, y_means, linewidth=linewidth, label='mean')
 
     if title is None:
         title = 'y metric vs x metric'
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
+
+    if legend:
+        plt.legend()
 
 
 def plot_metric_vs_other_mutiple_params(x_metric, y_metric, params, param_name, title, xlabel, ylabel, figsize=(16, 10),
@@ -44,54 +50,49 @@ def plot_metric_vs_other_mutiple_params(x_metric, y_metric, params, param_name, 
     height = math.ceil(n_plots / width)
 
     fig, axs = plt.subplots(height, width, figsize=figsize)
-    fig.suptitle(title, fontsize=16)
+    fig.suptitle(title, fontsize=18)
 
     for i in range(height):
         for j in range(width):
-            if i == height - 1:
-                axs[i, j].set_xlabel(xlabel)
-            if j == 0:
-                axs[i, j].set_ylabel(ylabel)
-            axs[i, j].set_title('{}={}'.format(param_name, params[i * width + j]))
-            #axs[i, j].plot(, y1, color='b')
-    ## fig 1
-    # plt.subplot(2,2,1) # plt.subplot(number of lines, number of columns, index of the current subplot)
-    # axs[0, 0].set_xlabel('x input')
-    # axs[0, 0].set_ylabel('f(x) output')
-    # axs[0, 0].set_ylim(0, 100)
-    # axs[0, 0].set_title('Squared function of input')
-    # axs[0, 0].plot(x, y1, color='b')
-    #
-    # ## fig 2
-    # axs[0, 1].set_xlabel('x input')
-    # axs[0, 1].set_ylabel('f(x) output')
-    # axs[0, 1].set_ylim(0, 100)
-    # axs[0, 1].set_title('Squared function of input')
-    # axs[0, 1].scatter(x, y2, color='r', marker='x')
-    #
-    # ## fig 3
-    # axs[1, 0].set_xlabel('x input')
-    # axs[1, 0].set_ylabel('f(x) output')
-    # axs[1, 0].set_ylim(0, 100)
-    # axs[1, 0].set_title('Squared function of input')
-    # axs[1, 0].plot(x, y3, color='g')
-    #
-    # ## fig 4
-    # axs[1, 1].set_xlabel('x input')
-    # axs[1, 1].set_ylabel('f(x) output')
-    # axs[1, 1].set_ylim(0, 100)
-    # axs[1, 1].set_title('Squared function of input')
-    # axs[1, 1].plot(x, y4, color='orange', label='alpha = {}'.format(alpha4))
-    # axs[1, 1].scatter(x, y5, c='purple', label='alpha = {}'.format(alpha5))
-    # axs[1, 1].legend()
+            index = i * width + j
+            if index < len(params):  # otherwise there is no dqtq to plot
+                legend = False
+                if height == 1:  # if only one row than axs has only one dimension
+                    ax = axs[j]
+                else:
+                    ax = axs[i, j]
+                if i == height - 1:  # add xlabel only for the last row
+                    xlabel_ax = xlabel
+                else:
+                    xlabel_ax = None
+                if j == 0:  # add ylabel only for the first column
+                    ylabel_ax = ylabel
+                    if i == 0:  # only one legend is enough for the whole plot
+                        legend = True
+                else:
+                    ylabel_ax = None
+                title = '{}={}'.format(param_name, params[index])
+                plot_metric_vs_other(x_metric[index], y_metric[index], ax, figsize=None, style=style, marker=marker,
+                                     color=color, linewidth=linewidth, title=title, xlabel=xlabel_ax, ylabel=ylabel_ax,
+                                     legend=legend)
 
-    ## if you want to remove the tick values on the x-axis (for instance)
-    plt.setp([a.get_xticklabels() for a in axs[0, :]], visible=False)
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper right')
 
-    ## 2 following lines are optional, they are just here to ajust the space between plots and main title. Commenting them
-    # out will still produce a nice plot
-    # fig.tight_layout()
-    # fig.subplots_adjust(top=0.9)
 
-    # display all figures
-    plt.show()
+def plot_metric_vs_step(metric, steps, ax=None, figsize=(10, 10), style='darkgrid', title=None, xlabel='steps',
+                        ylabel='metric'):
+    set_plot_options(style)
+    if ax is None:
+        plt.figure(figsize=figsize)
+        ax = plt.gca()
+    assert len(metric) == len(steps), "metric and steps must have same length but metric had length {:,} " \
+                                      "and steps had length {:,}".format(len(metric), len(steps))
+
+    ax.plot(steps, metric)
+
+    if title is None:
+        title = 'y metric vs x metric'
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)

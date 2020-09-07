@@ -144,6 +144,8 @@ class TwoLayerNet(BaseModel):
         return {'loss': loss, 'likelihood': likelihood, 'accuracy': acc, 'margin': margin,
                 'normalized_margin': normalized_margin, 'sample_margins': sample_margins, 'log': tensorboard_logs}
 
+    # TODO : Apparently 'training_epoch_end' is not compatible with newer versions of PyTorch Lightning and might have
+    #  to be changed to some other name such as 'on_epoch_end' for compliance with versions >= 0.9.0.
     def training_epoch_end(self, outputs):
         beta = self.beta
         margin = np.min([x['margin'] for x in outputs])

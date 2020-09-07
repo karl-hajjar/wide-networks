@@ -3,7 +3,7 @@ import numpy as np
 
 class RandomData:
     """
-    A class defining a dataset genrated using a random procedure for the features as well as the labels.
+    A class defining a dataset generated using a random procedure for the features as well as the labels.
     """
     dev = 0.1
 
