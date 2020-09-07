@@ -47,7 +47,7 @@ class TestResultsPlots(unittest.TestCase):
             y_metric.append([self.experiments_results[exp_name][i]['test'][0][y_metric_key]
                              for i in range(self.n_trials)])
 
-        plot_metric_vs_other(x_metric, y_metric, linewidth=2.0, title='{} vs m with d={:,}'.format(y_metric_str, d),
+        plot_metric_vs_param(x_metric, y_metric, linewidth=2.0, title='{} vs m with d={:,}'.format(y_metric_str, d),
                              xlabel='m', ylabel=y_metric_str)
         plt.savefig('outputs/figures/bsize={}_ntrain={}_d={}_{}_vs_m.png'.format(self.batch_size, self.n_train, d,
                                                                                  y_metric_key))
@@ -76,8 +76,8 @@ class TestResultsPlots(unittest.TestCase):
 
         title = '{} vs m with different d'.format(y_metric_str)
 
-        plot_metric_vs_other_mutiple_params(x_metrics, y_metrics, ds, param_name=param_name, linewidth=2.0, title=title,
-                                            xlabel='m', ylabel=y_metric_str)
+        plot_metric_vs_param_mutiple(x_metrics, y_metrics, ds, other_param_name=param_name, title=title, xlabel='m',
+                                     ylabel=y_metric_str, linewidth=2.0)
 
         # plot_metric_vs_other(x_metrics, y_metrics, linewidth=2.0, title=title, xlabel='m', ylabel=y_metric_str)
         plt.savefig('outputs/figures/bsize={}_ntrain={}_{}_vs_m_multiple_{}.png'.format(self.batch_size, self.n_train,

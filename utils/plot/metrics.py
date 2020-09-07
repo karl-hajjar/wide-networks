@@ -4,28 +4,28 @@ import numpy as np
 import pandas as pd
 import math
 
-from . import set_plot_options
+from . import set_plot_options  # see __init__ file
 
 
-def plot_metric_vs_other(x_metric, y_metric, ax=None, figsize=(10, 10), style='darkgrid', marker='+', color='r', linewidth=None,
-                         title=None, xlabel=None, ylabel=None, legend=True):
+def plot_metric_vs_param(metric, param, ax=None, figsize=(10, 10), style='darkgrid', marker='+', color='r',
+                         linewidth=None, title=None, xlabel=None, ylabel=None, legend=True):
     set_plot_options(style)
     if ax is None:
         plt.figure(figsize=figsize)
         ax = plt.gca()
-    assert len(y_metric) == len(x_metric), "x_metric and y_metric must have same length but x_metric had length {:,} " \
-                                           "and y_metric had length {:,}".format(len(x_metric), len(y_metric))
+    assert len(param) == len(metric), "metric and param must have same length but metric had length {:,} " \
+                                      "and param had length {:,}".format(len(metric), len(param))
     # scatter y_metric values for all trials for each value of x_metric
-    for i in range(len(y_metric)):
+    for i in range(len(metric)):
         label = None
         if i == 0:
             label = 'randomized trials'
-        ys = y_metric[i]
-        ax.scatter([x_metric[i]] * len(ys), ys, marker=marker, c=color, label=label)
+        ys = metric[i]
+        ax.scatter([param[i]] * len(ys), ys, marker=marker, c=color, label=label)
 
     # line plot trial means of y_metric vs x_metric
-    y_means = np.mean(y_metric, axis=1)
-    ax.plot(x_metric, y_means, linewidth=linewidth, label='mean')
+    y_means = np.mean(metric, axis=1)
+    ax.plot(param, y_means, linewidth=linewidth, label='mean')
 
     if title is None:
         title = 'y metric vs x metric'
@@ -37,15 +37,15 @@ def plot_metric_vs_other(x_metric, y_metric, ax=None, figsize=(10, 10), style='d
         plt.legend()
 
 
-def plot_metric_vs_other_mutiple_params(x_metric, y_metric, params, param_name, title, xlabel, ylabel, figsize=(16, 10),
-                                        style='darkgrid', marker='+', color='r', linewidth=None):
-    assert len(y_metric) == len(x_metric) == len(params), \
-        "x_metric, y_metric and params must have same length but had respective lengths {:,}, {:,} and {:,}".\
-            format(len(x_metric), len(y_metric), len(params))
+def plot_metric_vs_param_mutiple(metric, param, other_params, other_param_name, title, xlabel, ylabel, figsize=(16, 10),
+                                 style='darkgrid', marker='+', color='r', linewidth=None):
+    assert len(param) == len(metric) == len(other_params), \
+        "metric, param and other_params must have same length but had respective lengths {:,}, {:,} and {:,}". \
+            format(len(metric), len(param), len(other_params))
 
     n_max = 12
     max_width = 4
-    n_plots = min(len(params), n_max)
+    n_plots = min(len(other_params), n_max)
     width = min(n_plots, max_width)
     height = math.ceil(n_plots / width)
 
@@ -55,7 +55,7 @@ def plot_metric_vs_other_mutiple_params(x_metric, y_metric, params, param_name, 
     for i in range(height):
         for j in range(width):
             index = i * width + j
-            if index < len(params):  # otherwise there is no dqtq to plot
+            if index < len(other_params):  # otherwise there is no dqtq to plot
                 legend = False
                 if height == 1:  # if only one row than axs has only one dimension
                     ax = axs[j]
@@ -71,8 +71,8 @@ def plot_metric_vs_other_mutiple_params(x_metric, y_metric, params, param_name, 
                         legend = True
                 else:
                     ylabel_ax = None
-                title = '{}={}'.format(param_name, params[index])
-                plot_metric_vs_other(x_metric[index], y_metric[index], ax, figsize=None, style=style, marker=marker,
+                title = '{}={}'.format(other_param_name, other_params[index])
+                plot_metric_vs_param(metric[index], param[index], ax, figsize=None, style=style, marker=marker,
                                      color=color, linewidth=linewidth, title=title, xlabel=xlabel_ax, ylabel=ylabel_ax,
                                      legend=legend)
 
@@ -96,3 +96,32 @@ def plot_metric_vs_step(metric, steps, ax=None, figsize=(10, 10), style='darkgri
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
+
+
+def plot_metric_vs_param_from_results(other_params_dict, results, metric_key, param_key, param_values, other_param_key,
+                                      n_trials=5, ax=None, figsize=(10, 10), style='darkgrid', marker='+', color='r',
+                                      linewidth=None, legend=True):
+    metric_name = ' '.join(metric_key.split('_'))
+    param_to_string = dict()
+    for key, value in other_params_dict.items():
+        if key != param_key:
+            param_to_string[key] = '{}={}'.format(key, value)
+        else:
+            param_to_string[key] = key + '={}'
+    base_exp_name = param_to_string['bsize'] + '_' + param_to_string['ntrain'] + '_' + param_to_string['d'] + '_' + \
+                    param_to_string['m']
+
+    metric = []
+    params_keep = []
+    for param in param_values:
+        exp_name = base_exp_name.format(param)
+        try:
+            metric.append([results[exp_name][i]['test'][0][metric_key] for i in range(n_trials)])
+            params_keep.append(param)
+        except Exception as e:
+            print('Metric retrieval failed for {}={} : {}'.format(param_key, param, e))
+    title = '{} vs {} with {}={:,}'.format(metric_name, param_key, other_param_key, other_params_dict[other_param_key])
+    xlabel = param_key
+    ylabel = metric_name
+    plot_metric_vs_param(metric, params_keep, ax=ax, figsize=figsize, style=style, marker=marker, color=color,
+                         linewidth=linewidth, title=title, xlabel=xlabel, ylabel=ylabel, legend=legend)

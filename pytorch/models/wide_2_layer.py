@@ -45,7 +45,7 @@ class TwoLayerNet(BaseModel):
         :param init_config:
         :return:
         """
-        if (init_config is None) or (init_config.name not in INIT_DICT.keys()):
+        if (init_config is None) or (init_config.name not in INIT_DICT.keys()):  # custom initialization
             if (init_config is None) or (not hasattr(init_config, 'params')) or \
                ('std' not in init_config.params.keys()):
                 std = 1.0
@@ -71,7 +71,7 @@ class TwoLayerNet(BaseModel):
                             self.layer2.weight[0, j] = 1.0
                         else:
                             self.layer2.weight[0, j] = -1.0
-        else:
+        else:  # initialization from one of PyTorch initializers
             super(TwoLayerNet, self).initialize_params(init_config)
 
     def forward(self, x):
