@@ -99,8 +99,8 @@ def plot_metric_vs_step(metric, steps, ax=None, figsize=(10, 10), style='darkgri
 
 
 def plot_metric_vs_param_from_results(other_params_dict, results, metric_key, param_key, param_values, other_param_key,
-                                      n_trials=5, ax=None, figsize=(10, 10), style='darkgrid', marker='+', color='r',
-                                      linewidth=None, legend=True):
+                                      n_trials=5, mode='test', ax=None, figsize=(10, 10), style='darkgrid', marker='+',
+                                      color='r', linewidth=None, legend=True):
     metric_name = ' '.join(metric_key.split('_'))
     param_to_string = dict()
     for key, value in other_params_dict.items():
@@ -113,14 +113,25 @@ def plot_metric_vs_param_from_results(other_params_dict, results, metric_key, pa
 
     metric = []
     params_keep = []
+    if mode == 'test':
+        index = 0
+    elif mode in ['training', 'validation']:
+        index = -1  # if training or validation, get the last value as reference for convergence
+    else:
+        raise ValueError("mode argument must be one of ['training', 'validation', 'test'] but was {}".format(mode))
     for param in param_values:
         exp_name = base_exp_name.format(param)
         try:
-            metric.append([results[exp_name][i]['test'][0][metric_key] for i in range(n_trials)])
+            metric.append([results[exp_name][i][mode][index][metric_key] for i in range(n_trials)])
             params_keep.append(param)
         except Exception as e:
             print('Metric retrieval failed for {}={} : {}'.format(param_key, param, e))
-    title = '{} vs {} with {}={:,}'.format(metric_name, param_key, other_param_key, other_params_dict[other_param_key])
+    if metric_key == 'beta':
+        title = '{} vs {} with {}={:,}'.format(metric_name, param_key, other_param_key,
+                                               other_params_dict[other_param_key])
+    else:
+        title = '{} {} vs {} with {}={:,}'.format(mode, metric_name, param_key, other_param_key,
+                                                  other_params_dict[other_param_key])
     xlabel = param_key
     ylabel = metric_name
     plot_metric_vs_param(metric, params_keep, ax=ax, figsize=figsize, style=style, marker=marker, color=color,
