@@ -17,7 +17,7 @@ BATCH_SIZE = 64
 DATA_DIR = '../../data/'
 SAVE_DIR = '../../experiments'
 NAME = 'wide_2_layer'
-PRECISION = 1e-6
+PRECISION = 1e-5
 RESULTS_FILE = 'results.pickle'
 
 MAX_EPOCHS = 5000
@@ -154,7 +154,7 @@ class TestWide2LayerTrainer(unittest.TestCase):
             elif mode == 'val':
                 n = self.n_val
             else:
-                n = self.n - (self.n_train - self.n_val)
+                n = self.n - (self.n_train + self.n_val)
             self.assertTrue(res['margin'] <= res['smoothed_exp_margin'])
             self.assertTrue(res['smoothed_exp_margin'] <= (np.log(n) / self.beta + res['margin']))
             self.assertTrue(res['smoothed_exp_margin'] <= res['smoothed_logistic_margin'] + PRECISION)
