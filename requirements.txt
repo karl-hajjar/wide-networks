@@ -11,7 +11,7 @@ scikit-learn
 matplotlib
 seaborn
 torch
-pytorch-lightning=0.8.5
-tensorboard=2.2.2
+pytorch-lightning==0.8.5
+tensorboard==2.2.2
 torchvision
 tensorflow

@@ -107,7 +107,7 @@ def plot_random_data3d(data_points: np.array, cluster_centers: np.array, labels:
     ax.scatter(cluster_centers[:, 0], cluster_centers[:, 1], cluster_centers[:, 2], marker=marker, c=color)  # cluster centers
     # plot data points with label +1
     plt.scatter(positive_data_points[:, 0], positive_data_points[:, 1], positive_data_points[:, 2], marker='+', c='r')
-    # plot data points with label +1
+    # plot data points with label -1
     plt.scatter(negative_data_points[:, 0], negative_data_points[:, 1], negative_data_points[:, 2], marker='_', c='b')
 
     ax.grid(show_grid)
