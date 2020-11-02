@@ -10,6 +10,7 @@ __pycache__/
 data
 resources
 tests/*.ipynb
+figures/initialization
 
 # Experiments
 experiments

@@ -13,13 +13,13 @@ def plot_average_over_trials(df, x, y, hue=None, ax=None, figsize=(10, 10), styl
     if ax is None:
         plt.figure(figsize=figsize)
         ax = plt.gca()
-    sns.lineplot(data=df, x=x, y=y, hue=hue)
+    sns.lineplot(data=df, x=x, y=y, hue=hue, palette="deep")
     plt.title(title)
 
 
 def get_all_layers_df(nets, n=100, compute_outputs=False):
     dfs = []
-    columns = ['m', 'l', 'weights average norm']
+    columns = ['m', 'layer', 'weights average norm']
     if compute_outputs:
         columns.append('output')
     for m in nets.keys():
@@ -31,7 +31,7 @@ def get_all_layers_df(nets, n=100, compute_outputs=False):
 
 
 def get_layers_outputs_df(nets, inputs):
-    columns = ['m', 'l', 'max absolute output']
+    columns = ['m', 'layer', 'max absolute output']
     df = pd.DataFrame(columns=columns, dtype=float)
     i = 0
     for m in nets.keys():
@@ -40,13 +40,16 @@ def get_layers_outputs_df(nets, inputs):
             for l in range(len(net.layers)):
                 a = net.layers[l].forward(a).detach()
                 # df.loc[i, columns] = [m, l, a.abs().mean().item()]
-                df.loc[i, columns] = [m, l, a.abs().max().item()]
+                df.loc[i, columns] = [m, l+1, a.abs().max().item()]
                 i += 1
-    return df.astype(float)
+
+    df[['m', 'layer']] = df[['m', 'layer']].astype(int)
+    df['max absolute output'] = df['max absolute output'].astype(float)
+    return df
 
 
 def get_layers_gradients_df(nets, inputs):
-    columns = ['m', 'l', 'max absolute derivative']
+    columns = ['m', 'layer', 'max absolute derivative']
     df = pd.DataFrame(columns=columns, dtype=float)
     i = 0
     for m in nets.keys():
@@ -59,11 +62,14 @@ def get_layers_gradients_df(nets, inputs):
                 grad = net.layers[l].layer[0].weight.grad
                 # note that grad holds the average gradient of the output over all samples
                 # df.loc[i, columns] = [m, l, grad.abs().mean().item()]
-                df.loc[i, columns] = [m, l, grad.abs().max().item()]
+                df.loc[i, columns] = [m, l+1, grad.abs().max().item()]
                 i += 1
             # handle output layer separately
             l = L - 1
             grad = net.layers[l].layer.weight.grad
-            df.loc[i, columns] = [m, l, grad.abs().max().item()]
+            df.loc[i, columns] = [m, l+1, grad.abs().max().item()]
             i += 1
-    return df.astype(float)
+
+    df[['m', 'layer']] = df[['m', 'layer']].astype(int)
+    df['max absolute derivative'] = df['max absolute derivative'].astype(float)
+    return df
