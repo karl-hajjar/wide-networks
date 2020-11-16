@@ -109,9 +109,11 @@ class ResNet(BaseModel):
                     module: nn.Module):
         if module.training:
             module.eval()
-        dummy_input = torch.zeros((1, input_channels, input_width, input_height), requires_grad=False)
-        dummy_output_width = module.forward(dummy_input).size()[2]
-        dummy_output_height = module.forward(dummy_input).size()[3]
+        with torch.no_grad():
+            dummy_input = torch.zeros((1, input_channels, input_width, input_height), requires_grad=False)
+            dummy_output_size = module.forward(dummy_input).size()
+            dummy_output_width = dummy_output_size[2]
+            dummy_output_height = dummy_output_size[3]
         assert expected_output_width == dummy_output_width, \
                "actual and expected output widths do not, they are respectively : {:,} and {:,}". \
                format(dummy_output_width, expected_output_width)

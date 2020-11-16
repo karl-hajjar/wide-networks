@@ -20,6 +20,8 @@ class WideLayer(nn.Module):
             scale = np.sqrt(scale)
         elif scaling == 'mf':
             pass
+        elif scaling is None:
+            scale = 1.0
         else:
             raise ValueError("scaling {} not implemented".format(scaling))
         self.scale = scale
@@ -48,7 +50,7 @@ class FCNetwork(nn.Module):
         self.init_params = init_params
 
         self.layer_sizes = [(d, m)] + [(m, m)] * (L - 2) + [(m, 1)]
-        self.biases = [True] + [bias] * (L - 1)
+        self.biases = [bias] * L
         self.activations = [sigma] * (L - 1) + [None]
         self.scales = [1.0] + [1.0 / m] * (L - 1)
         assert len(self.layer_sizes) == len(self.biases) == L
@@ -78,31 +80,28 @@ class FCNetwork(nn.Module):
         return self.layers.forward(x)
 
 
-def define_networks(L, ms, d, init, init_params, n_trials, bias=False, scaling='mf', scale_init=None,
-                    training=False):
+def define_networks(L, ms, d, init, init_params, n_trials, bias=False, scaling='mf', scale_init=None):
     nets = dict()
     for m in ms:
-        nets_ = []
-        if (scale_init is not None) and (init_params is not None):
-            rescaled_init_params = _rescale_init(init_params, scale_init, m)
-        else:
-            rescaled_init_params = init_params
+        nets_m = []
         for _ in range(n_trials):
-            net = FCNetwork(L=L, m=m, d=d, bias=bias, init=init, scaling=scaling, init_params=rescaled_init_params)
-            if training:
-                net.train()
-            else:
-                net.eval()  # set validation mode to disable autograd and release memory
-            nets_.append(net)
-        nets[m] = nets_
+            net = FCNetwork(L=L, m=m, d=d, bias=bias, init=init, scaling=scaling, init_params=init_params)
+            net.eval()  # set validation mode
+            if scale_init is not None:
+                _rescale(net, scale_init, m)
+            nets_m.append(net)
+        nets[m] = nets_m
     return nets
 
 
-def _rescale_init(init_params, scale_init, scale):
+def _rescale(net, scale_init, scale):
     if scale_init == 'lin':
-        rescaled_init_params = {key: scale * value for key, value in init_params.items()}
+        pass  # do not change the scale
     elif scale_init == 'sqrt':
-        rescaled_init_params = {key: np.sqrt(scale) * value for key, value in init_params.items()}
+        scale = np.sqrt(scale)
     else:
         raise ValueError("init scaling {} is not implemented".format(scale_init))
-    return rescaled_init_params
+    with torch.no_grad():  # disable autograd
+        for layer in net.layers[1:]:  # do not rescale layer 0
+            for param in layer.parameters():
+                param.data = scale * param.data.detach()
