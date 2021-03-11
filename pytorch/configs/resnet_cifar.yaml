@@ -1,0 +1,18 @@
+name:
+  "ResNet18"
+
+# model is pre-built from torchvision, all the architecture is already defined. What is left to define is
+# the loss and the optimizer.
+
+activation:
+  # leave it empty, already implemented in torchivision
+
+loss:
+  name: "cross_entropy"
+  params:
+    reduction: "mean"
+
+optimizer:
+  name: "sgd"
+  params:
+    lr: 1.0e-3
