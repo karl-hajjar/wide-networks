@@ -13,7 +13,7 @@ class ModelConfig:
         **kwargs. If a dict and a file path are both passed as argument, the values inside the dict are used to create
         the config.
         :param config_dict: a dict containing the name and values of the hyperparameters. Default None.
-        :param config_file: the path to ayaml file containing the name and values of the hyperparameters. Default None.
+        :param config_file: the path to a yaml file containing the name and values of the hyperparameters. Default None.
         :param kwargs: additional arguments
         """
         self._dict = None
@@ -40,6 +40,7 @@ class ModelConfig:
         self.loss = BaseConfig(d["loss"]) if "loss" in d.keys() else BaseConfig()
         self.optimizer = BaseConfig(d["optimizer"]) if "optimizer" in d.keys() else BaseConfig()
         self.initializer = BaseConfig(d["initializer"]) if "initializer" in d.keys() else BaseConfig()
+        self.scheduler = BaseConfig(d["scheduler"]) if "scheduler" in d.keys() else None  # scheduler is not mandatory
         if "normalization" in d.keys():
             self.normalization = BaseConfig(d["normalization"])
             if "params" not in d["normalization"]:
@@ -58,7 +59,8 @@ class ModelConfig:
                                                                              ("activation" not in key) and
                                                                              ("loss" not in key) and
                                                                              ("optimizer" not in key) and
-                                                                             ("normalization" not in key))}
+                                                                             ("normalization" not in key) and
+                                                                             ("scheduler" not in key))}
 
     @staticmethod
     def _create_base_config(pattern: str, **kwargs):

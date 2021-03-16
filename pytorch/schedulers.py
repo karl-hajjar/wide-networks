@@ -47,6 +47,6 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
     def step(self):
         if self._step < self.n_warmup_steps:
             for param in self.optimizer.param_groups:
-                par
+                pass
 
         self._step += 1

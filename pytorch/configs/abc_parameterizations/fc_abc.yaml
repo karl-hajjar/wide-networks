@@ -1,0 +1,26 @@
+name:
+
+architecture:
+  n_layers: 4
+  input_size: 28
+  width: 128
+  bias: true
+  output_size: 10
+
+activation:
+  name: "relu"
+
+loss:
+  name: "cross_entropy"
+  params:
+    reduction: "mean"
+
+optimizer:
+  name: "sgd"
+  params:
+    lr: 1.0e-4
+
+initializer:
+  name: "custom"
+  params:
+    var: 2.0

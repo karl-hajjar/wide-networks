@@ -29,7 +29,7 @@ class Wide2LayerRunner(JobRunner):
     A class to run multiple trials of different experiments on the wide 2-layer networks.
     """
 
-    def __init__(self, config_dict: dict, base_experiment_path: str, n_rep):
+    def __init__(self, config_dict: dict, base_experiment_path: str, n_rep: int):
         super().__init__(config_dict, base_experiment_path)
         self.original_config_dict = config_dict  # keep a copy of the original config_dict because of later changes
         self.n_rep = n_rep
