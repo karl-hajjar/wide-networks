@@ -8,7 +8,7 @@ class BaseMuP(BaseABCParam):
     class and has to be implemented in the child classes.
     """
 
-    def __init__(self, config, width: int):
+    def __init__(self, config, width: int = None, results_path=None):
         """
         Base class for the muP parameterization where:
          - a[0] = -1/2, a[l] = 0 for l in [1,L-2], a[L-1] = 1/2
@@ -24,4 +24,4 @@ class BaseMuP(BaseABCParam):
         c = 0
 
         # create optimizer, loss, activation, normalization
-        super().__init__(config, a, b, c, width)
+        super().__init__(config, a, b, c, width, results_path)

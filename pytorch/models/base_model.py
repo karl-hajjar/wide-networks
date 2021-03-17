@@ -2,6 +2,7 @@ import torch
 from pytorch_lightning import LightningModule
 import numpy as np
 
+from pytorch.configs.model import ModelConfig
 from pytorch.activations import get_activation
 from pytorch.losses import get_loss
 from pytorch.optimizers import get_optimizer
@@ -14,11 +15,11 @@ class BaseModel(LightningModule):
     A base class implementing a generic neural network with the lightning module.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: ModelConfig, results_path=None):
         """
         Defines the model using the appropriate config class containing all the necessary parameters (activation, loss,
         loss, optimizer, training/eval batch size, ...)
-        :param config: an object of the config class.
+        :param config: an object of the ModelConfig class.
         """
         super(BaseModel, self).__init__()
         self._check_config(config)
@@ -36,6 +37,12 @@ class BaseModel(LightningModule):
         # define hparams for later logging
         self.hparams = config.dict()
         self.save_hyperparameters(config.dict())
+
+        # define an attribute to hold all the history of train/val/test metrics for later plotting /analysing
+        self.results = {'training': [], 'validation': [], 'test': []}
+
+        if results_path is not None:
+            self.results_file = open(results_path, 'wb')
 
     def __str__(self):
         s = LightningModule.__str__(self)
@@ -74,10 +81,12 @@ class BaseModel(LightningModule):
             except Exception as e:
                 raise Exception("Exception while trying to create the loss : {}".format(e))
 
-    def _set_optimizer(self, optimizer_config):
+    def _set_optimizer(self, optimizer_config, params=None):
+        if params is None:
+            params = self.parameters()
         optimizer = get_optimizer(optimizer_config.name)
         if not hasattr(optimizer_config, "params"):
-            self.optimizer = optimizer(self.parameters())
+            self.optimizer = optimizer(params)
         else:
             if optimizer_config.name == "adam":  # set betas = (beta1, beta2) in adam keyword args
                 if ("beta1" in optimizer_config.params.keys()) and ("beta2" in optimizer_config.params.keys()):
@@ -85,7 +94,7 @@ class BaseModel(LightningModule):
                     beta2 = optimizer_config.params.pop("beta2")
                     optimizer_config.params["betas"] = (beta1, beta2)
             try:
-                self.optimizer = optimizer(self.parameters(), **optimizer_config.params)
+                self.optimizer = optimizer(params, **optimizer_config.params)
             except Exception as e:
                 raise Exception("Exception while trying to create the optimizer : {}".format(e))
 
@@ -181,7 +190,7 @@ class BaseModel(LightningModule):
         return self.optimizer
 
     def train_dataloader(self):
-        # REQUIRED
+        # OPTIONAL
         pass
 
     def val_dataloader(self):

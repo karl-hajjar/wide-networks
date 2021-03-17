@@ -25,9 +25,6 @@ class TwoLayerNet(BaseModel):
             self._name = "TwoLayerNet"
         self._name = self._name + str(self.hidden_layer_dim)
 
-        # define an attribute to hold all the history of train/val/test metrics for later plotting /analysing
-        self.results = {'training': [], 'validation': [], 'test': []}
-
     def _build_model(self, config):
         # define both layers
         self.layer1 = nn.Linear(in_features=config.architecture["input_size"],

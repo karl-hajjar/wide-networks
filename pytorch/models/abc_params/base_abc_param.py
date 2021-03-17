@@ -1,16 +1,11 @@
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader, Subset
-from sklearn.metrics import roc_auc_score
-import numpy as np
 from typing import List
 import logging
 import math
 from collections.abc import Iterable
+import numpy as np
 
 from pytorch.models.base_model import BaseModel
-from utils.nn import smoothed_exp_margin, smoothed_logistic_margin
-from pytorch.initializers import INIT_DICT
 
 
 class BaseABCParam(BaseModel):
@@ -19,10 +14,9 @@ class BaseABCParam(BaseModel):
     details on abc-parameterizations see https://arxiv.org/abs/2011.14522. Anything that is architecture specific is
     left out of this class and has to be implemented in the child classes.
     """
-
-    def __init__(self, config, a: List[float], b: List[float], c: [List[float], float], width: int = None):
+    def __init__(self, config, a: List[float], b: List[float], c: [List[float], float], width: int = None,
+                 results_path=None):
         """
-
         :param config: the configuration to define the network (architecture, loss, optimizer)
         :param width: the common width (number of neurons) of all layers except the last.
         :param a: list of floats. The layer scales. The pre-activations of layer l will be scaled by m^{-a[l]}.
@@ -50,7 +44,7 @@ class BaseABCParam(BaseModel):
         self.lr_scales = [self.width ** (-c[l]) for l in range(self.n_layers)]
 
         # create optimizer, loss, activation, normalization
-        super().__init__(config)
+        super().__init__(config, results_path)
 
     def _set_width(self, config, width):
         """
@@ -103,6 +97,22 @@ class BaseABCParam(BaseModel):
         self.input_layer = torch.nn.Module()
         self.intermediate_layers = torch.nn.ModuleList()
         self.output_layer = torch.nn.Module()
+
+    def _set_optimizer(self, optimizer_config, params=None):
+        if (optimizer_config.params is None) or ('lr' not in optimizer_config.params.keys()):
+            raise ValueError("optimizer config must have a parameter `lr` in abc-parameterizations")
+        else:
+            self.base_lr = optimizer_config.params['lr']
+        param_groups = \
+            [{'params': self.input_layer.parameters(), 'lr': self.base_lr * self.lr_scales[0]}] + \
+            [{'params': layer.parameters(), 'lr': self.base_lr * self.lr_scales[l+1]}
+             for l, layer in enumerate(self.intermediate_layers)] + \
+            [{'params': self.output_layer.parameters(), 'lr': self.base_lr * self.lr_scales[self.n_layers - 1]}]
+
+        super()._set_optimizer(optimizer_config, params=param_groups)
+
+    def _get_opt_lr(self):
+        return [param_group['lr'] for param_group in self.optimizer.param_groups]  # L+1 lrs, one for each layer
 
     def set_layer_scales_from_a(self):
         """
@@ -157,6 +167,8 @@ class BaseABCParam(BaseModel):
         """
         Set the matrices in self.U and biases in self.v from those of model if sizes match.
         :param model: an other abc-parameterization with compatible sizes for the weights and biases.
+        :param check_model: bool, whether or not to do a first check that the model provided is compatible in terms of
+        architecture with the object contained in self (check number of layers and if there is a bias or not).
         :return:
         """
         if check_model:  # there is a check anyways in copy_initial_params_from_params_list
@@ -194,6 +206,7 @@ class BaseABCParam(BaseModel):
             if v[l].size() != self.v[l].size():
                 raise ValueError("v[l] was of size {} whereas self.v[l] was of size {}".format(v[l].size(),
                                                                                                self.v[l].size()))
+
     def forward(self, x):
         # all about optimization with Lightning can be found here (e.g. how to define a particular optim step) :
         # https://pytorch-lightning.readthedocs.io/en/latest/optimizers.html
@@ -207,33 +220,45 @@ class BaseABCParam(BaseModel):
         return (self.width ** (-self.a[self.n_layers-1])) * self.output_layer.forward(x)  # f(x)
 
     def predict(self, x, mode='probas', from_logits=False):
-        # if not from_logits:
-        #     x = self.forward(x)
-        # if mode == 'probas':
-        #     return torch.sigmoid(x)
-        # else:
-        #     return x
-        pass
-
-    def train_dataloader(self, dataset=None, shuffle=True, batch_size=32, indexes=None):
-        dataset = Subset(dataset, indexes)
-        return DataLoader(dataset, shuffle=shuffle, batch_size=batch_size)
-
-    def val_dataloader(self, dataset=None, shuffle=True, batch_size=32, indexes=None):
-        dataset = Subset(dataset, indexes)
-        return DataLoader(dataset, shuffle=shuffle, batch_size=batch_size)
-
-    def test_dataloader(self, dataset=None, shuffle=True, batch_size=32, indexes=None):
-        dataset = Subset(dataset, indexes)
-        return DataLoader(dataset, shuffle=shuffle, batch_size=batch_size)
+        if not from_logits:
+            x = self.forward(x)
+        if mode == 'probas':
+            return torch.softmax(x, dim=-1)
+        else:
+            return x
 
     def training_step(self, batch, batch_nb):
-        pass
+        x, y = batch
+        y_hat = self.forward(x)
+        loss = self.loss(y_hat, y)
+
+        with torch.no_grad():
+            probas = self.predict(y_hat, mode='probas', from_logits=True)
+            likelihood = probas[torch.arange(0, len(y)), y]  # proba of correct label
+            pred_proba, pred_label = torch.max(probas, dim=1)  # proba and index of predicted label
+            acc = (pred_label == y).sum() / float(len(y))
+
+        lrs = {'layer_{}'.format(l+1): lr for l, lr in enumerate(self._get_opt_lr())}
+
+        # get probability of target labels only and then average over batch
+        tensorboard_logs = {'training/loss': loss, 'training/likelihood': likelihood, 'training/accuracy': acc,
+                            'training/predicted_label_proba': pred_proba.mean(),
+                            'training/learning_rate': lrs}
+
+        return {'loss': loss, 'likelihood': likelihood, 'accuracy': acc, 'pred_proba': pred_proba,
+                'log': tensorboard_logs}
 
     # TODO : Apparently 'training_epoch_end' is not compatible with newer versions of PyTorch Lightning and might have
     #  to be changed to some other name such as 'on_epoch_end' for compliance with versions >= 0.9.0.
     def training_epoch_end(self, outputs):
-        pass
+        results = {'loss': np.mean([x['loss'] for x in outputs]),
+                   'likelihood': np.mean([x['likelihood'] for x in outputs]),
+                   'accuracy': np.mean([x['accuracy'] for x in outputs]),
+                   'pred_proba': np.mean([x['pred_proba'] for x in outputs]),
+                   'lrs': [x['log']['training/learning_rate'] for x in outputs]}
+        self.results['training'].append(results)
+        # optionally, results could instead be flushed for training and validation at the end of every epoch
+        return results
 
     def _evaluation_step(self, batch, batch_nb, mode: str):
         pass
@@ -243,3 +268,4 @@ class BaseABCParam(BaseModel):
 
     def configure_optimizers(self):
         pass
+

@@ -10,13 +10,15 @@ __pycache__/
 data
 resources
 tests/*.ipynb
-figures/initialization
 
 # Experiments
 experiments
 
 # Logs
 logs
+
+# Figures
+figures
 
 # java extensions
 .classpath

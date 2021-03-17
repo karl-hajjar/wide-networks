@@ -9,13 +9,13 @@ class FCIP(BaseIP):
     A class implementing the NTK parameterization of a fully-connected network.
     """
 
-    def __init__(self, config, c: [List[float], float], width: int = None):
+    def __init__(self, config, c: [List[float], float], width: int = None, results_path=None):
         """
         A class implementing abc-parameterizations for fully-connected networks.
         :param config: the configuration to define the network (architecture, loss, optimizer)
         :param width: the common width (number of neurons) of all layers except the last.
         """
-        super().__init__(config, c, width)
+        super().__init__(config, c, width, results_path)
 
         if self._name == "model":
             self._name = "FCIP"

@@ -57,7 +57,7 @@ def plot_init_outputs_vs_m(fig_path, model_name, exponent, model_class, n_trials
     if y_scale == 'log':
         g.set(yscale="log")
         plt.yscale('log')
-        plt.ylabel('log output')
+        plt.ylabel('output (log scale)')
     else:
         plt.ylabel('output')
 

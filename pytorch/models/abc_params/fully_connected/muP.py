@@ -8,13 +8,13 @@ class FCmuP(BaseMuP):
     A class implementing the NTK parameterization of a fully-connected network.
     """
 
-    def __init__(self, config, width: int):
+    def __init__(self, config, width: int = None, results_path=None):
         """
         A class implementing abc-parameterizations for fully-connected networks.
         :param config: the configuration to define the network (architecture, loss, optimizer)
         :param width: the common width (number of neurons) of all layers except the last.
         """
-        super().__init__(config, width)
+        super().__init__(config, width, results_path)
 
         if self._name == "model":
             self._name = "FCmuP"

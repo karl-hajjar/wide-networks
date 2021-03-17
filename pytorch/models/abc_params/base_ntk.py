@@ -8,7 +8,7 @@ class BaseNTK(BaseABCParam):
     of this class and has to be implemented in the child classes.
     """
 
-    def __init__(self, config, width: int):
+    def __init__(self, config, width: int = None, results_path=None):
         """
         Base class for the NTK parameterization where:
          - a[0] = 0, a[l] = 1/2 for any l in [1, L-1]
@@ -24,4 +24,4 @@ class BaseNTK(BaseABCParam):
         c = 0
 
         # create optimizer, loss, activation, normalization
-        super().__init__(config, a, b, c, width)
+        super().__init__(config, a, b, c, width, results_path)
