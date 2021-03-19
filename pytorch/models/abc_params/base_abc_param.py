@@ -4,6 +4,7 @@ import logging
 import math
 from collections.abc import Iterable
 import numpy as np
+import pickle
 
 from pytorch.models.base_model import BaseModel
 
@@ -14,8 +15,7 @@ class BaseABCParam(BaseModel):
     details on abc-parameterizations see https://arxiv.org/abs/2011.14522. Anything that is architecture specific is
     left out of this class and has to be implemented in the child classes.
     """
-    def __init__(self, config, a: List[float], b: List[float], c: [List[float], float], width: int = None,
-                 results_path=None):
+    def __init__(self, config, a: List[float], b: List[float], c: [List[float], float], width: int = None):
         """
         :param config: the configuration to define the network (architecture, loss, optimizer)
         :param width: the common width (number of neurons) of all layers except the last.
@@ -44,7 +44,7 @@ class BaseABCParam(BaseModel):
         self.lr_scales = [self.width ** (-c[l]) for l in range(self.n_layers)]
 
         # create optimizer, loss, activation, normalization
-        super().__init__(config, results_path)
+        super().__init__(config)
 
     def _set_width(self, config, width):
         """
@@ -68,10 +68,11 @@ class BaseABCParam(BaseModel):
         :param config:
         :return:
         """
-        if ("n_layers" in config.keys()) and (config["n_layers"] is not None):
-            self.n_layers = config["n_layers"]  # L + 1
-        else:
-            raise ValueError("`n_layers` was None in the config")
+        if not hasattr(self, "n_layers"):
+            if ("n_layers" in config.keys()) and (config["n_layers"] is not None):
+                self.n_layers = config["n_layers"]  # L + 1
+            else:
+                raise ValueError("`n_layers` was None in the config")
 
     def _set_bias(self, config):
         if ("bias" in config.keys()) and (config["bias"] is not None):
@@ -103,6 +104,8 @@ class BaseABCParam(BaseModel):
             raise ValueError("optimizer config must have a parameter `lr` in abc-parameterizations")
         else:
             self.base_lr = optimizer_config.params['lr']
+
+        # intermediate layers all share the same learning rate in the classically used abc-parameterizations
         param_groups = \
             [{'params': self.input_layer.parameters(), 'lr': self.base_lr * self.lr_scales[0]}] + \
             [{'params': layer.parameters(), 'lr': self.base_lr * self.lr_scales[l+1]}
@@ -234,38 +237,77 @@ class BaseABCParam(BaseModel):
 
         with torch.no_grad():
             probas = self.predict(y_hat, mode='probas', from_logits=True)
-            likelihood = probas[torch.arange(0, len(y)), y]  # proba of correct label
+            likelihood = probas[torch.arange(0, len(y)), y].mean()  # proba of correct label
             pred_proba, pred_label = torch.max(probas, dim=1)  # proba and index of predicted label
             acc = (pred_label == y).sum() / float(len(y))
 
-        lrs = {'layer_{}'.format(l+1): lr for l, lr in enumerate(self._get_opt_lr())}
+        lrs_list = self._get_opt_lr()
+        lrs = {'input_layer': lrs_list[0], 'intermediate_layers': lrs_list[1], 'output_layer': lrs_list[2]}
 
-        # get probability of target labels only and then average over batch
         tensorboard_logs = {'training/loss': loss, 'training/likelihood': likelihood, 'training/accuracy': acc,
-                            'training/predicted_label_proba': pred_proba.mean(),
-                            'training/learning_rate': lrs}
+                            'training/predicted_label_proba': pred_proba.mean()}
+        for layer, lr in lrs.items():
+            tensorboard_logs['learning_rates/{}'.format(layer)] = lr
 
-        return {'loss': loss, 'likelihood': likelihood, 'accuracy': acc, 'pred_proba': pred_proba,
+        return {'loss': loss, 'likelihood': likelihood, 'accuracy': acc, 'pred_proba': pred_proba.mean(),
                 'log': tensorboard_logs}
 
     # TODO : Apparently 'training_epoch_end' is not compatible with newer versions of PyTorch Lightning and might have
     #  to be changed to some other name such as 'on_epoch_end' for compliance with versions >= 0.9.0.
     def training_epoch_end(self, outputs):
-        results = {'loss': np.mean([x['loss'] for x in outputs]),
+        all_losses = [x['loss'] for x in outputs]
+        results = {'all_losses': all_losses,
+                   'loss': np.mean(all_losses),
                    'likelihood': np.mean([x['likelihood'] for x in outputs]),
                    'accuracy': np.mean([x['accuracy'] for x in outputs]),
                    'pred_proba': np.mean([x['pred_proba'] for x in outputs]),
-                   'lrs': [x['log']['training/learning_rate'] for x in outputs]}
+                   'lrs': [{key: x['log']['learning_rates/{}'.format(key)]
+                            for key in ['input_layer', 'intermediate_layers', 'output_layer']}
+                           for x in outputs]}
+
         self.results['training'].append(results)
-        # optionally, results could instead be flushed for training and validation at the end of every epoch
         return results
 
     def _evaluation_step(self, batch, batch_nb, mode: str):
-        pass
+        # define prefixes
+        mode_to_short = {'validation': 'val', 'test': 'test'}
+        short_name = mode_to_short[mode]
+
+        # torch.no_grad() should already be active here by construction of the Lightning module
+        x, y = batch
+        y_hat = self.forward(x)
+        loss = self.loss(y_hat, y)
+
+        probas = self.predict(y_hat, mode='probas', from_logits=True)
+        likelihood = probas[torch.arange(0, len(y)), y].mean()  # proba of correct label
+        pred_proba, pred_label = torch.max(probas, dim=1)  # proba and index of predicted label
+        correct = pred_label == y
+        acc = correct.sum() / float(len(y))
+
+        return {'{}_loss'.format(short_name): loss, '{}_likelihood'.format(short_name): likelihood,
+                '{}_accuracy'.format(short_name): acc, '{}_pred_proba'.format(short_name): pred_proba.mean(),
+                'correct': correct}
 
     def _evaluation_epoch_end(self, outputs, mode: str):
-        pass
+        # define prefixes
+        mode_to_short = {'validation': 'val', 'test': 'test'}
+        short_name = mode_to_short[mode]
 
-    def configure_optimizers(self):
-        pass
+        avg_loss = torch.stack([x['{}_loss'.format(short_name)] for x in outputs]).mean()
+        avg_likelihood = torch.stack([x['{}_likelihood'.format(short_name)] for x in outputs]).mean()
+        avg_accuracy = torch.stack([x['{}_accuracy'.format(short_name)] for x in outputs]).mean()
 
+        # stack only works for tensors of the same size and the last batch might be of a different size
+        correct = torch.cat([x['correct'] for x in outputs], dim=0)
+        accuracy = correct.sum() / float(len(correct))
+
+        tensorboard_logs = {'{}/loss'.format(mode): avg_loss, '{}/likelihood'.format(mode): avg_likelihood,
+                            '{}/avg_accuracy'.format(mode): avg_accuracy, '{}/accuracy'.format(mode): accuracy}
+
+        # append to validation/test results
+        results = {'loss': avg_loss.item(), 'likelihood': avg_likelihood.item(), 'accuracy': accuracy.item(),
+                   'log': tensorboard_logs}
+        self.results[mode].append(results)
+
+        return {'{}_loss'.format(short_name): avg_loss, '{}_likelihood'.format(short_name): avg_likelihood,
+                '{}_accuracy'.format(short_name): accuracy, 'log': tensorboard_logs}

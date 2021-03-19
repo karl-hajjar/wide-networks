@@ -9,13 +9,13 @@ class FCIP(BaseIP):
     A class implementing the NTK parameterization of a fully-connected network.
     """
 
-    def __init__(self, config, c: [List[float], float], width: int = None, results_path=None):
+    def __init__(self, config, c: [List[float], float], width: int = None):
         """
         A class implementing abc-parameterizations for fully-connected networks.
         :param config: the configuration to define the network (architecture, loss, optimizer)
         :param width: the common width (number of neurons) of all layers except the last.
         """
-        super().__init__(config, c, width, results_path)
+        super().__init__(config, c, width)
 
         if self._name == "model":
             self._name = "FCIP"
@@ -47,23 +47,3 @@ class FCIP(BaseIP):
         self.output_layer = nn.Linear(in_features=self.width,
                                       out_features=config.architecture["output_size"],
                                       bias=config.architecture["bias"])
-
-    def predict(self, x, mode='probas', from_logits=False):
-        pass
-
-    def training_step(self, batch, batch_nb):
-        pass
-
-    # TODO : Apparently 'training_epoch_end' is not compatible with newer versions of PyTorch Lightning and might have
-    #  to be changed to some other name such as 'on_epoch_end' for compliance with versions >= 0.9.0.
-    def training_epoch_end(self, outputs):
-        pass
-
-    def _evaluation_step(self, batch, batch_nb, mode: str):
-        pass
-
-    def _evaluation_epoch_end(self, outputs, mode: str):
-        pass
-
-    def configure_optimizers(self):
-        pass

@@ -1,8 +1,9 @@
+import os
 import logging
 import numpy as np
 import torch
 import yaml
-import os
+import pickle
 
 
 def set_up_logging(path):
@@ -47,3 +48,17 @@ def create_dir(path):
     """
     if not os.path.exists(path):
         os.makedirs(path)
+
+
+def load_pickle(path, single=False):
+    results = []
+    with open(path, "rb") as f:
+        if single:
+            results = pickle.load(f)
+        else:
+            while True:
+                try:
+                    results.append(pickle.load(f))
+                except EOFError:
+                    break
+    return results

@@ -10,7 +10,7 @@ class BaseIP(BaseABCParam):
     be implemented in the child classes.
     """
 
-    def __init__(self, config,  c: [List[float], float], width: int = None, results_path=None):
+    def __init__(self, config,  c: [List[float], float], width: int = None):
         """
         Base class for the IP parameterization where:
          - a[0] = 0, a[l] = 1 for l in [1,L-1]
@@ -23,4 +23,4 @@ class BaseIP(BaseABCParam):
         a = [0] + [1 for _ in range(1, L)]
         b = [0 for _ in range(L)]
 
-        super().__init__(config, a, b, c, width, results_path)
+        super().__init__(config, a, b, c, width)

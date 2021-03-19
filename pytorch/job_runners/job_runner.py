@@ -19,10 +19,14 @@ class JobRunner(object):
         """
         self.config_dict = config_dict
 
+        self._set_model_version(config_dict)
         self._set_model_config(config_dict)
 
-        # define corresponding directory in experiments folder
-        self.base_experiment_path = os.path.join(base_experiment_path, self.model_config)  # base experiment folder
+        # define corresponding directory in experiments folder for the base experiment folder
+        self.base_experiment_path = os.path.join(base_experiment_path, self.model_version, self.model_config)
+
+    def _set_model_version(self, config_dict):
+        self.model_version = ""
 
     def _set_model_config(self, config_dict):
         # define string to represent model

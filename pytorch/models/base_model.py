@@ -15,7 +15,7 @@ class BaseModel(LightningModule):
     A base class implementing a generic neural network with the lightning module.
     """
 
-    def __init__(self, config: ModelConfig, results_path=None):
+    def __init__(self, config: ModelConfig):
         """
         Defines the model using the appropriate config class containing all the necessary parameters (activation, loss,
         loss, optimizer, training/eval batch size, ...)
@@ -29,7 +29,8 @@ class BaseModel(LightningModule):
         self._set_loss(config.loss)
         self._build_model(config)
         if len(list(self.parameters())) == 0:
-            raise ValueError("Model has no parameters defined and optimizer cannot be defined: len(self.parameters) = 0")
+            raise ValueError("Model has no parameters defined and optimizer cannot be defined: len(self.parameters) = "
+                             "0. Parameters have to be defined in the _build_model() method.")
         else:  # only set the optimizer if some parameters have been already defined
             self._set_optimizer(config.optimizer)
         self.initialize_params(config.initializer)  # initialize the parameters using the config
@@ -40,9 +41,6 @@ class BaseModel(LightningModule):
 
         # define an attribute to hold all the history of train/val/test metrics for later plotting /analysing
         self.results = {'training': [], 'validation': [], 'test': []}
-
-        if results_path is not None:
-            self.results_file = open(results_path, 'wb')
 
     def __str__(self):
         s = LightningModule.__str__(self)
@@ -112,7 +110,7 @@ class BaseModel(LightningModule):
             try:
                 self.initializer = initializer(self.parameters(), **init_config.params)
             except Exception as e:
-                raise Exception("Exception while trying to create the optimizer : {}".format(e))
+                raise Exception("Exception while trying to create the initializer : {}".format(e))
 
     def initialize_params(self, init_config=None):
         # initialise model parameters

@@ -29,7 +29,6 @@ class ABCRunner(JobRunner):
         self.width = config_dict['architecture']['width']
         self.batch_size = config_dict['training']['batch_size']
         self._set_base_lr(config_dict)
-        self.base_lr = config_dict['training']['lr']
 
         super().__init__(config_dict, base_experiment_path)
 
@@ -56,17 +55,22 @@ class ABCRunner(JobRunner):
         else:
             self.early_stopping = early_stopping
 
-        self.early_stopping_callback = False
+        self.early_stopping_callback = False  # this is modified in _set_tb_logger_and_callbacks in early_stopping=True
 
         set_random_seeds(self.SEED)  # set random seed for reproducibility
         self.trial_seeds = np.random.randint(0, 100, size=n_trials)  # define random seeds to use for each trial
 
+    def _set_model_version(self, config_dict):
+        # recall L is the number of HIDDEN layers
+        self.model_version = 'L={}_m={}'.format(config_dict['architecture']['n_layers'] - 1,
+                                                config_dict['architecture']['width'])
+
     def _set_model_config(self, config_dict):
         # define string to represent model
-        model_config = 'width={}_activation={}_lr={}_batchsize={}'.format(self.width,
-                                                                          config_dict['activation']['name'],
-                                                                          self.base_lr,
-                                                                          self.batch_size)
+        model_config = 'activation={}_lr={}_batchsize={}_bias={}'.format(config_dict['activation']['name'],
+                                                                         self.base_lr,
+                                                                         self.batch_size,
+                                                                         config_dict['architecture']['bias'])
         self.model_config = model_config
 
     def _set_base_lr(self, config_dict):
@@ -85,8 +89,8 @@ class ABCRunner(JobRunner):
 
     def _set_data_loaders(self):
         self.train_data_loader = DataLoader(self.train_dataset, shuffle=True, batch_size=self.batch_size)
-        self.val_data_loader = DataLoader(self.val_dataset, shuffle=True, batch_size=self.batch_size)
-        self.test_data_loader = DataLoader(self.test_dataset, shuffle=True, batch_size=self.batch_size)
+        self.val_data_loader = DataLoader(self.val_dataset, shuffle=False, batch_size=self.batch_size)
+        self.test_data_loader = DataLoader(self.test_dataset, shuffle=False, batch_size=self.batch_size)
 
     def run(self):
         for idx in range(self.n_trials):
@@ -106,28 +110,39 @@ class ABCRunner(JobRunner):
             set_up_logging(log_dir)
 
             config = ModelConfig(config_dict=self.config_dict)  # define the config as a class to pass to the model
-            results_path = os.path.join(self.trial_dir, self.RESULTS_FILE)
-            model = self.model(config, base_lr=self.base_lr, results_path=results_path)  # define the model
+            model = self.model(config)  # define the model
 
-            logging.info('----- Trial {:,} -----\n'.format(idx))
+            logging.info('----- Trial {:,} ----- with model config {}\n'.format(idx, self.model_config))
             self._log_experiment_info(len(self.train_dataset), len(self.val_dataset), len(self.test_dataset), model.var)
             logging.info('Random seed used for the script : {:,}'.format(self.SEED))
             logging.info('Number of model parameters : {:,}'.format(model.count_parameters()))
             logging.info('Model architecture :\n{}\n'.format(model))
 
-            # training and validation pipeline
-            trainer = pl.Trainer(max_epochs=self.max_epochs, max_steps=self.max_steps, logger=self.tb_logger,
-                                 checkpoint_callback=self.checkpoint_callback, num_sanity_val_steps=0,
-                                 early_stop_callback=self.early_stopping_callback)
-            trainer.fit(model=model, train_dataloader=self.train_data_loader, val_dataloaders=self.val_data_loader)
+            try:
+                # training and validation pipeline
+                trainer = pl.Trainer(max_epochs=self.max_epochs, max_steps=self.max_steps, logger=self.tb_logger,
+                                     checkpoint_callback=self.checkpoint_callback, num_sanity_val_steps=0,
+                                     early_stop_callback=self.early_stopping_callback)
+                trainer.fit(model=model, train_dataloader=self.train_data_loader, val_dataloaders=self.val_data_loader)
 
-            # test pipeline
-            test_results = trainer.test(model=model, test_dataloaders=self.test_data_loader)
-            logging.info('Test results :\n{}\n'.format(test_results))
+                # test pipeline
+                test_results = trainer.test(model=model, test_dataloaders=self.test_data_loader)
+                logging.info('Test results :\n{}\n'.format(test_results))
 
-            # save all training val and test results to pickle file
-            with open(os.path.join(self.trial_dir, self.RESULTS_FILE), 'wb') as file:
-                pickle.dump(model.results, file)
+                # save all training, val and test results to pickle file
+                with open(os.path.join(self.trial_dir, self.RESULTS_FILE), 'wb') as file:
+                    pickle.dump(model.results, file)
+
+            except Exception as e:
+                # dump and save results before exiting
+                with open(os.path.join(self.trial_dir, self.RESULTS_FILE), 'wb') as file:
+                    pickle.dump(model.results, file)
+                logging.warning('model results dumped before interruption')
+                logging.exception("Exception while running the train-val-test pipeline : {}".format(e))
+                raise Exception(e)
+
+        else:
+            logging.warning("Directory for trial {:,} of experiment {} already exists".format(idx, self.model_config))
 
     def _set_tb_logger_and_callbacks(self, trial_name):
         """
@@ -149,11 +164,12 @@ class ABCRunner(JobRunner):
 
     def _log_experiment_info(self, n_train, n_val, n_test, var):
         logging.info('Batch size = {:,}'.format(self.batch_size))
-        logging.info('Learning rate = {:,}'.format(self.base_lr))
+        logging.info('Base learning rate = {:,}'.format(self.base_lr))
         logging.info('Number training samples = {:,}'.format(n_train))
         logging.info('Number validation samples = {:,}'.format(n_val))
         logging.info('Number test samples = {:,}'.format(n_test))
         logging.info('width = {:,}'.format(self.width))
         logging.info('activation : {}'.format(self.config_dict['activation']['name']))
+        logging.info('bias = {}'.format(self.config_dict['architecture']['bias']))
         logging.info('loss : {}'.format(self.config_dict['loss']['name']))
         logging.info('initialization variance : {}'.format(var))

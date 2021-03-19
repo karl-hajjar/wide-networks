@@ -40,19 +40,22 @@ def generate_init_outputs(model_class, n_trials, widths, config, x=None, bias=Fa
     return results_df
 
 
-def plot_init_outputs_vs_m(fig_path, model_name, exponent, model_class, n_trials, widths, config, x=None,
-                           figsize=(12, 6), bias=False, y_scale='log', save=True, show=True, marker='o', **args):
+def plot_init_outputs_vs_m(fig_path, model_name, model_class, n_trials, widths, config, x=None, figsize=(12, 6),
+                           bias=False, x_scale='log', y_scale='log', save=True, show=True, marker='o', **args):
     results_df = generate_init_outputs(model_class, n_trials, widths, config, x, bias, **args)
+    L = config.architecture['n_layers'] - 1
+    exponent = _get_exponent_from_name(L, activation=config.activation.name, name=model_name)
 
     plt.figure(figsize=figsize)
-    plt.title('{} output at initialization vs m with L={} hidden layers'.format(model_name,
-                                                                                config.architecture["n_layers"] - 1))
+    plt.title('{} output at initialization vs m with L={} hidden layers'.format(model_name, L))
 
     sns.lineplot(data=results_df, x='m', y='abs output', marker=marker, label='abs output')
-    plt.plot(widths, np.array(widths, dtype=float) ** (-exponent / 2), marker=marker, label='m^(-{}/2)'.format(exponent))
+    plt.plot(widths, np.array(widths, dtype=float) ** (-exponent / 2), marker=marker,
+             label='m^(-{}/2)'.format(exponent))
 
     g = sns.lineplot(data=results_df, x='m', y='squared output', marker=marker, label='squared output')
-    plt.plot(widths, np.array(widths, dtype=float) ** (-exponent), marker=marker, label='m^(-{})'.format(exponent))
+    plt.plot(widths, np.array(widths, dtype=float) ** (-exponent), marker=marker,
+             label='m^(-{})'.format(exponent))
 
     if y_scale == 'log':
         g.set(yscale="log")
@@ -60,6 +63,13 @@ def plot_init_outputs_vs_m(fig_path, model_name, exponent, model_class, n_trials
         plt.ylabel('output (log scale)')
     else:
         plt.ylabel('output')
+
+    if x_scale == 'log':
+        g.set(xscale="log")
+        plt.xscale('log')
+        plt.xlabel('width (log scale)')
+    else:
+        plt.xlabel('width')
 
     plt.legend()
     if save:
@@ -98,3 +108,15 @@ def plot_init_outputs_dist(fig_path, model_name, model_class, n_trials, widths, 
         plt.savefig(fig_path)
     if show:
         plt.show()
+
+
+def _get_exponent_from_name(L: int, activation: str, name: str):
+    if 'ntk' in name.lower():
+        return 0
+    elif 'mup' in name.lower():
+        return 1
+    elif 'ip' in name.lower():
+        if 'relu_' in activation:
+            q = int(activation.split('_')[1])
+            return q * L
+        return L
