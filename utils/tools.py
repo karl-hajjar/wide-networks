@@ -6,14 +6,35 @@ import yaml
 import pickle
 
 
-def set_up_logging(path):
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)-5.5s] -- %(module)s - %(funcName)s  %(message)s",
-        handlers=[
-            logging.FileHandler(path, mode='w'),
-            logging.StreamHandler()]
-    )
+def set_up_logger(path):
+    # first remove handlers if there were some already defined
+    logger = logging.getLogger()  # root logger
+    for handler in logger.handlers:  # remove all old handlers
+        handler.close()
+        logger.removeHandler(handler)
+
+    # set new handlers
+    formatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s] -- %(module)s - %(funcName)s  %(message)s")
+    file_handler = logging.FileHandler(path, mode='w')
+    file_handler.setFormatter(formatter)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(formatter)
+
+    # add new handlers
+    logger.setLevel(logging.INFO)
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+
+    # # then define new logger
+    # logging.basicConfig(
+    #     level=logging.INFO,
+    #     format="%(asctime)s [%(levelname)-5.5s] -- %(module)s - %(funcName)s  %(message)s",
+    #     handlers=[
+    #         logging.FileHandler(path, mode='w'),
+    #         logging.StreamHandler()]
+    # )
+
+    return logger
 
 
 def set_random_seeds(seed=42):

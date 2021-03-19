@@ -53,11 +53,12 @@ class BaseABCParam(BaseModel):
         :param width:
         :return:
         """
+        logger = logging.getLogger()
         if ("width" in config.keys()) and (config["width"] is not None):
-            logging.info('Initializing width from config')
+            logger.info('Initializing width from config')
             self.width = config["width"]  # m
         elif width is not None:
-            logging.info('Initializing width from argument')
+            logger.info('Initializing width from argument')
             self.width = width  # m
         else:
             raise ValueError("Both the config and argument widths were None")

@@ -10,7 +10,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
 from pytorch.job_runners.job_runner import JobRunner
 from pytorch.models.abc_params.base_abc_param import BaseABCParam
-from utils.tools import create_dir, set_up_logging, set_random_seeds
+from utils.tools import create_dir, set_up_logger, set_random_seeds
 from pytorch.configs.model import ModelConfig
 
 
@@ -107,16 +107,16 @@ class ABCRunner(JobRunner):
             self._set_tb_logger_and_callbacks(trial_name)  # tb logger, checkpoints and early stopping
 
             log_dir = os.path.join(self.trial_dir, self.LOG_NAME)  # define path to save the logs of the trial
-            set_up_logging(log_dir)
+            logger = set_up_logger(log_dir)
 
             config = ModelConfig(config_dict=self.config_dict)  # define the config as a class to pass to the model
             model = self.model(config)  # define the model
 
-            logging.info('----- Trial {:,} ----- with model config {}\n'.format(idx, self.model_config))
+            logger.info('----- Trial {:,} ----- with model config {}\n'.format(idx + 1, self.model_config))
             self._log_experiment_info(len(self.train_dataset), len(self.val_dataset), len(self.test_dataset), model.var)
-            logging.info('Random seed used for the script : {:,}'.format(self.SEED))
-            logging.info('Number of model parameters : {:,}'.format(model.count_parameters()))
-            logging.info('Model architecture :\n{}\n'.format(model))
+            logger.info('Random seed used for the script : {:,}'.format(self.SEED))
+            logger.info('Number of model parameters : {:,}'.format(model.count_parameters()))
+            logger.info('Model architecture :\n{}\n'.format(model))
 
             try:
                 # training and validation pipeline
@@ -127,7 +127,7 @@ class ABCRunner(JobRunner):
 
                 # test pipeline
                 test_results = trainer.test(model=model, test_dataloaders=self.test_data_loader)
-                logging.info('Test results :\n{}\n'.format(test_results))
+                logger.info('Test results :\n{}\n'.format(test_results))
 
                 # save all training, val and test results to pickle file
                 with open(os.path.join(self.trial_dir, self.RESULTS_FILE), 'wb') as file:
@@ -137,8 +137,8 @@ class ABCRunner(JobRunner):
                 # dump and save results before exiting
                 with open(os.path.join(self.trial_dir, self.RESULTS_FILE), 'wb') as file:
                     pickle.dump(model.results, file)
-                logging.warning('model results dumped before interruption')
-                logging.exception("Exception while running the train-val-test pipeline : {}".format(e))
+                logger.warning('model results dumped before interruption')
+                logger.exception("Exception while running the train-val-test pipeline : {}".format(e))
                 raise Exception(e)
 
         else:
@@ -163,13 +163,14 @@ class ABCRunner(JobRunner):
             self.early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta=1.0e-6, patience=5, mode='min')
 
     def _log_experiment_info(self, n_train, n_val, n_test, var):
-        logging.info('Batch size = {:,}'.format(self.batch_size))
-        logging.info('Base learning rate = {:,}'.format(self.base_lr))
-        logging.info('Number training samples = {:,}'.format(n_train))
-        logging.info('Number validation samples = {:,}'.format(n_val))
-        logging.info('Number test samples = {:,}'.format(n_test))
-        logging.info('width = {:,}'.format(self.width))
-        logging.info('activation : {}'.format(self.config_dict['activation']['name']))
-        logging.info('bias = {}'.format(self.config_dict['architecture']['bias']))
-        logging.info('loss : {}'.format(self.config_dict['loss']['name']))
-        logging.info('initialization variance : {}'.format(var))
+        logger = logging.getLogger()
+        logger.info('Batch size = {:,}'.format(self.batch_size))
+        logger.info('Base learning rate = {:,}'.format(self.base_lr))
+        logger.info('Number training samples = {:,}'.format(n_train))
+        logger.info('Number validation samples = {:,}'.format(n_val))
+        logger.info('Number test samples = {:,}'.format(n_test))
+        logger.info('width = {:,}'.format(self.width))
+        logger.info('activation : {}'.format(self.config_dict['activation']['name']))
+        logger.info('bias = {}'.format(self.config_dict['architecture']['bias']))
+        logger.info('loss : {}'.format(self.config_dict['loss']['name']))
+        logger.info('initialization variance : {}'.format(var))

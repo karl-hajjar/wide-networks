@@ -81,18 +81,18 @@ class Wide2LayerRunner(JobRunner):
             self._set_tb_logger_and_callbacks(trial_name)  # tb logger, checkpoints and early stopping
 
             log_dir = os.path.join(self.trial_dir, self.LOG_NAME)  # define path to save the logs of the trial
-            set_up_logging(log_dir)
-            logging.info('----- Trial {:,} with version {} -----\n'.format(idx, self.trial_version))
+            logger = set_up_logger(log_dir)
+            logger.info('----- Trial {:,} with version {} -----\n'.format(idx, self.trial_version))
             self._log_experiment_info(k, r, batch_size, n, n_train, d, m)
 
             set_random_seeds(seed)  # set random seed for the trial
-            logging.info('Random seed used for the script : {:,}'.format(self.SEED))
-            logging.info('Random seed used for the trial : {:,}\n'.format(seed))
+            logger.info('Random seed used for the script : {:,}'.format(self.SEED))
+            logger.info('Random seed used for the trial : {:,}\n'.format(seed))
 
             config = ModelConfig(config_dict=self.config_dict)  # define the config as a class to pass to the model
             two_layer_net = TwoLayerNet(config, train_hidden=True)  # define the model
-            logging.info('Number of model parameters : {:,}'.format(two_layer_net.count_parameters()))
-            logging.info('Model architecture :\n{}\n'.format(two_layer_net))
+            logger.info('Number of model parameters : {:,}'.format(two_layer_net.count_parameters()))
+            logger.info('Model architecture :\n{}\n'.format(two_layer_net))
 
             # training and validation pipeline
             trainer = pl.Trainer(max_epochs=MAX_EPOCHS, max_steps=MAX_STEPS, logger=self.tb_logger,
@@ -103,35 +103,35 @@ class Wide2LayerRunner(JobRunner):
 
             # test pipeline
             test_results = trainer.test(model=two_layer_net, test_dataloaders=self.test_data_loader)
-            logging.info('Test results :\n{}\n'.format(test_results))
+            logger.info('Test results :\n{}\n'.format(test_results))
 
             # save all training val and test results to pickle file
             with open(os.path.join(self.trial_dir, self.RESULTS_FILE), 'wb') as file:
                 pickle.dump(two_layer_net.results, file)
 
     def _log_experiment_info(self, k, r, batch_size, n, n_train, d, m):
-        logging.info('Square root of the number of clusters k = {:,}'.format(k))
-        logging.info('Max euclidean norm of the data r = {:,}'.format(r))
-        logging.info('Batch size = {:,}'.format(batch_size))
-        logging.info('Total number of data points n = {:,}'.format(n))
-        logging.info('Number training samples n_train = {:,}'.format(n_train))
-        logging.info('d = {:,}'.format(d))
-        logging.info('m = {:,}'.format(m))
-        logging.info('activation : {}'.format(self.config_dict['activation']['name']))
-        logging.info('loss : {}'.format(self.config_dict['loss']['name']))
-        logging.info('optimizer : {}'.format(self.config_dict['optimizer']['name']))
+        logger.info('Square root of the number of clusters k = {:,}'.format(k))
+        logger.info('Max euclidean norm of the data r = {:,}'.format(r))
+        logger.info('Batch size = {:,}'.format(batch_size))
+        logger.info('Total number of data points n = {:,}'.format(n))
+        logger.info('Number training samples n_train = {:,}'.format(n_train))
+        logger.info('d = {:,}'.format(d))
+        logger.info('m = {:,}'.format(m))
+        logger.info('activation : {}'.format(self.config_dict['activation']['name']))
+        logger.info('loss : {}'.format(self.config_dict['loss']['name']))
+        logger.info('optimizer : {}'.format(self.config_dict['optimizer']['name']))
 
         if ('initializer' in self.config_dict.keys()) and ('name' in self.config_dict['initializer'].keys()):
             initializer = self.config_dict['initializer']['name']
         else:
             initializer = 'custom'
-        logging.info('initializer : {}'.format(initializer))
+        logger.info('initializer : {}'.format(initializer))
 
         if ('normalization' in self.config_dict.keys()) and ('name' in self.config_dict['normalization'].keys()):
             norm = self.config_dict['initializer']['name']
         else:
             norm = 'None'
-        logging.info('normalization : {}\n'.format(norm))
+        logger.info('normalization : {}\n'.format(norm))
 
     @staticmethod
     def _generate_data(k, r, d, n) -> torch.utils.data.Dataset:

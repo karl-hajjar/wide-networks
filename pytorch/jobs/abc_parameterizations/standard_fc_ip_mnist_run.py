@@ -7,21 +7,18 @@ from utils.tools import read_yaml
 from utils.data.mnist import load_data
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
-ROOT = os.path.dirname(os.path.dirname(FILE_DIR))  # go back 2 times in the dir from this directory
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(FILE_DIR)))  # go back 3 times in the dir from this directory
 EXPERIMENTS_DIR = 'experiments'
 MODEL_NAME = 'standard_fc_ip_mnist'
 CONFIG_FILE = 'standard_fc_ip_mnist.yaml'
 
 
-@click.option('-N', '--n_trials', required=False, type=click.INT,
+@click.command()
+@click.option('--n_trials', '-N', required=False, type=click.INT, default=10,
               help='Number of different random initializations')
-@click.option('-dld', '--download', required=False, type=click.BOOL,
-              help='Number of different random initializations')
+@click.option('--download', '-dld', required=False, type=click.BOOL, default=False,
+              help='Whether to download the data or not')
 def run(n_trials=10, download=False):
-    # print('FILE_DIR :', FILE_DIR)
-    # print('os.path.dirname(FILE_DIR) :', os.path.dirname(FILE_DIR))
-    # print('os.path.dirname(os.path.dirname(FILE_DIR)) :', os.path.dirname(os.path.dirname(FILE_DIR)))
-    # print('ROOT :', ROOT)
     config_dict = read_yaml(os.path.join(ROOT, 'pytorch/configs/abc_parameterizations', CONFIG_FILE))
 
     # define corresponding directory in experiments folder

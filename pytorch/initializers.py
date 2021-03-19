@@ -12,7 +12,7 @@ DEFAULT_INIT = "glorot_uniform"
 
 def get_initializer(initializer=None):
     if initializer is None:
-        logging.warning('No initializer provided, using default initializer {}'.format(DEFAULT_INIT))
+        logger.warning('No initializer provided, using default initializer {}'.format(DEFAULT_INIT))
         return INIT_DICT[DEFAULT_INIT]
     elif isinstance(initializer, str):
         if initializer in INIT_DICT.keys():

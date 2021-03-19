@@ -4,7 +4,7 @@ name:
 architecture:
   n_layers: 5
   input_size: 784
-  width: 256
+  width: 128
   bias: false
   output_size: 10
 
@@ -19,7 +19,7 @@ loss:
 optimizer:
   name: "sgd"
   params:
-    lr: 1.0e-3
+    lr: 0.01
 
 initializer:
   name: "custom"
@@ -28,5 +28,5 @@ initializer:
 
 training:
   batch_size: 128
-  n_epochs: 20
-  n_steps: 2.0e5
+  n_epochs: 10
+  n_steps: 1.0e+4
