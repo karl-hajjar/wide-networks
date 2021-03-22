@@ -7,10 +7,17 @@ from utils.tools import read_yaml
 from utils.data.mnist import load_data
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(FILE_DIR)))  # go back 3 times in the dir from this directory
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(FILE_DIR)))  # go back 3 times from this directory
 EXPERIMENTS_DIR = 'experiments'
 MODEL_NAME = 'standard_fc_ip_mnist'
 CONFIG_FILE = 'standard_fc_ip_mnist.yaml'
+
+# Ls = [2, 3]  # n_layers - 1
+# WIDTHS = [128, 256, 512, 1024, 1400]
+Ls = [2]  # n_layers - 1
+WIDTHS = [128]
+# Ls = [4, 5]  # n_layers - 1
+# WIDTHS = [128, 256, 512, 1024]
 
 
 @click.command()
@@ -27,9 +34,13 @@ def run(n_trials=10, download=False):
     # prepare data
     training_dataset, test_dataset = load_data(download=download, flatten=True)
 
-    runner = ABCRunner(config_dict, base_experiment_path, model=StandardFCIP, train_dataset=training_dataset,
-                       test_dataset=test_dataset, early_stopping=False, n_trials=n_trials)
-    runner.run()
+    for L in Ls:
+        for width in WIDTHS:
+            config_dict['architecture']['n_layers'] = L + 1
+            config_dict['architecture']['width'] = width
+            runner = ABCRunner(config_dict, base_experiment_path, model=StandardFCIP, train_dataset=training_dataset,
+                               test_dataset=test_dataset, early_stopping=False, n_trials=n_trials)
+            runner.run()
 
 
 if __name__ == '__main__':

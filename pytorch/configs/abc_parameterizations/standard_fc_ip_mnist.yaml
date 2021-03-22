@@ -2,9 +2,9 @@ name:
   StandardFcIP
 
 architecture:
-  n_layers: 5
+  n_layers: 4
   input_size: 784
-  width: 128
+  width: 1024
   bias: false
   output_size: 10
 
@@ -19,7 +19,7 @@ loss:
 optimizer:
   name: "sgd"
   params:
-    lr: 0.01
+    lr: 0.001
 
 initializer:
   name: "custom"

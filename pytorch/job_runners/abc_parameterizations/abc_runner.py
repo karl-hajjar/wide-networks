@@ -113,7 +113,7 @@ class ABCRunner(JobRunner):
             model = self.model(config)  # define the model
 
             logger.info('----- Trial {:,} ----- with model config {}\n'.format(idx + 1, self.model_config))
-            self._log_experiment_info(len(self.train_dataset), len(self.val_dataset), len(self.test_dataset), model.var)
+            self._log_experiment_info(len(self.train_dataset), len(self.val_dataset), len(self.test_dataset), model.std)
             logger.info('Random seed used for the script : {:,}'.format(self.SEED))
             logger.info('Number of model parameters : {:,}'.format(model.count_parameters()))
             logger.info('Model architecture :\n{}\n'.format(model))
@@ -162,7 +162,7 @@ class ABCRunner(JobRunner):
         if self.early_stopping:
             self.early_stopping_callback = EarlyStopping(monitor='val_loss', min_delta=1.0e-6, patience=5, mode='min')
 
-    def _log_experiment_info(self, n_train, n_val, n_test, var):
+    def _log_experiment_info(self, n_train, n_val, n_test, std):
         logger = logging.getLogger()
         logger.info('Batch size = {:,}'.format(self.batch_size))
         logger.info('Base learning rate = {:,}'.format(self.base_lr))
@@ -173,4 +173,4 @@ class ABCRunner(JobRunner):
         logger.info('activation : {}'.format(self.config_dict['activation']['name']))
         logger.info('bias = {}'.format(self.config_dict['architecture']['bias']))
         logger.info('loss : {}'.format(self.config_dict['loss']['name']))
-        logger.info('initialization variance : {}'.format(var))
+        logger.info('initialization std : {}'.format(std))

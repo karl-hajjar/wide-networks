@@ -27,7 +27,7 @@ class BaseABCParam(BaseModel):
         self._set_width(config.architecture, width)  # set width m and check that it is not None
         self._set_n_layers(config.architecture)  # set n_layers L+1 and check that it is not None
         self._set_bias(config.architecture)  # defines self.bias based on the config
-        self._set_var(config.initializer)  # defines self.std based on the config
+        self._set_init_std(config.initializer, config.activation.name)  # defines self.std based on the config
 
         self._check_scales(a, b, c)
 
@@ -81,11 +81,19 @@ class BaseABCParam(BaseModel):
         else:
             self.bias = False
 
-    def _set_var(self, config):
-        if ("var" in config.params.keys()) and (config.params["var"] is not None):
-            self.var = config.params["var"]
-        else:
-            self.var = 1.0
+    def _set_init_std(self, config, activation=None):
+        var = 2.0  # default value for the variance
+        if activation is not None:
+            if activation == 'relu':
+                var = 2.0
+            elif activation == 'gelu':
+                var = 4.0
+            elif activation == 'elu':
+                var = 1.0
+        elif ("var" in config.params.keys()) and (config.params["var"] is not None):
+            var = config.params["var"]
+
+        self.std = math.sqrt(var)
 
     def _check_scales(self, a, b, c):
         if len(a) != self.n_layers:
@@ -132,7 +140,7 @@ class BaseABCParam(BaseModel):
         :param init_config:
         :return:
         """
-        self._generate_standard_gaussians(math.sqrt(self.var))
+        self._generate_standard_gaussians(self.std)
         # self._generate_standard_gaussians(std=1.0)
         with torch.no_grad():
             # weights
