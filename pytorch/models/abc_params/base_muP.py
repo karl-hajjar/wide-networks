@@ -11,8 +11,8 @@ class BaseMuP(BaseABCParam):
     def __init__(self, config, width: int = None):
         """
         Base class for the muP parameterization where:
-         - a[0] = -1/2, a[l] = 0 for l in [1,L-2], a[L-1] = 1/2
-         - b[l] = 1/2, for any l in [0, L-1]
+         - a[0] = -1/2, a[l] = 0 for l in [1,L-1], a[L] = 1/2
+         - b[l] = 1/2, for any l in [0, L]
          - c = 0
         :param config: the configuration to define the network (architecture, loss, optimizer)
         :param width: the common width (number of neurons) of all layers except the last.

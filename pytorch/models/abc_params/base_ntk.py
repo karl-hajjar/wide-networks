@@ -11,8 +11,8 @@ class BaseNTK(BaseABCParam):
     def __init__(self, config, width: int = None):
         """
         Base class for the NTK parameterization where:
-         - a[0] = 0, a[l] = 1/2 for any l in [1, L-1]
-         - b[l] = 0, for any l in [0, L-1]
+         - a[0] = 0, a[l] = 1/2 for any l in [1, L]
+         - b[l] = 0, for any l in [0, L]
          - c = 0
         :param config: the configuration to define the network (architecture, loss, optimizer)
         :param width: the common width (number of neurons) of all layers except the last.

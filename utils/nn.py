@@ -37,3 +37,14 @@ def smoothed_logistic_margin(beta: float, margins: torch.Tensor) -> torch.Tensor
         beta_margins = -beta * margins
         smoothed_margin = -1. / beta * np.log((torch.log(1 + torch.exp(beta_margins))).sum() / len(margins))
     return smoothed_margin
+
+
+def get_standard_mf_lr_exponents(L: int):
+    """
+    Return the list c of layer-wise learning rate exponents for standard Mean Field models, i.e. c[0] = -1, c[l] = -2
+    for l in [1, L-1], and c[L] = -1.
+    :param L: int, number of hidden layers, i.e. the total number of layers is L+1.
+    :return: list of (L+1) learning rate exponents
+    """
+    c = [-1] + [-2 for _ in range(1, L - 1)] + [-1]
+    return c

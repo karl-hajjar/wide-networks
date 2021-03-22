@@ -1,4 +1,5 @@
 from .base_ip import BaseIP
+from utils.nn import get_standard_mf_lr_exponents
 
 
 class StandardIP(BaseIP):
@@ -12,15 +13,15 @@ class StandardIP(BaseIP):
     def __init__(self, config, width: int = None):
         """
         Base class for the IP parameterization with the standard learning rates of Mean Field models:
-         - a[0] = 0, a[l] = 1 for l in [1, L-1]
-         - b[l] = 0, for any l in [0, L-1]
-         - c[0] = -1, c[l] = -2 for l in [1, L-2], c[L-1] = -1
+         - a[0] = 0, a[l] = 1 for l in [1, L]
+         - b[l] = 0, for any l in [0, L]
+         - c[0] = -1, c[l] = -2 for l in [1, L-1], c[L] = -1
         :param config: the configuration to define the network (architecture, loss, optimizer)
         :param width: the common width (number of neurons) of all layers except the last.
         """
         self._set_n_layers(config.architecture)
         L = self.n_layers
-        c = [-1] + [-2 for _ in range(1, L-1)] + [-1]
+        c = get_standard_mf_lr_exponents(L)
 
         super().__init__(config, c, width)
 

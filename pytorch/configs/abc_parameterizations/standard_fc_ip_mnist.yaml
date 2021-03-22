@@ -9,7 +9,7 @@ architecture:
   output_size: 10
 
 activation:
-  name: "gelu"
+  name: "relu"
 
 loss:
   name: "cross_entropy"

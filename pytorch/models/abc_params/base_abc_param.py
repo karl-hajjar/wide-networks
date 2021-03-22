@@ -114,7 +114,9 @@ class BaseABCParam(BaseModel):
         else:
             self.base_lr = optimizer_config.params['lr']
 
-        # intermediate layers all share the same learning rate in the classically used abc-parameterizations
+        # Below, intermediate layers all share the same learning rate as in classically used abc-parameterizations.
+        # This can be modified to have striclty layer-wise learning rates where each layer would have its own
+        # parameter group.
         param_groups = \
             [{'params': self.input_layer.parameters(), 'lr': self.base_lr * self.lr_scales[0]}] + \
             [{'params': layer.parameters(), 'lr': self.base_lr * self.lr_scales[l+1]}
