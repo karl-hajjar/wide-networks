@@ -64,6 +64,38 @@ class TestFCabcParam(unittest.TestCase):
             self.assertAlmostEqual(self.ip.layer_scales[l], 1 / self.ip.width, places=6)
             self.assertEqual(self.ip.init_scales[l], 1)
 
+    def test_copy_params_from_model(self):
+        self.muP.copy_initial_params_from_model(self.ntk)
+        self.ip.copy_initial_params_from_model(self.ntk)
+        for l in range(self.base_model_config.architecture["n_layers"]):
+            self.assertTrue((self.muP.U[l] == self.ntk.U[l]).all())
+            self.assertTrue((self.ip.U[l] == self.ntk.U[l]).all())
+
+            self.assertTrue((self.muP.v[l] == self.ntk.v[l]).all())
+            self.assertTrue((self.ip.v[l] == self.ntk.v[l]).all())
+
+        self.ip.initialize_params()
+        with torch.no_grad():
+            self.assertTrue((self.ip.input_layer.weight.data == self.ntk.input_layer.weight.data).all())
+            self.assertTrue((self.ip.input_layer.bias.data == self.ntk.input_layer.bias.data).all())
+
+            for l in range(2, self.ip.n_layers):
+                ip_weight = \
+                    self.ip.intermediate_layers.__dict__['_modules']["layer_{:,}_intermediate".format(l)].weight.data
+                ntk_weight = \
+                    self.ntk.intermediate_layers.__dict__['_modules']["layer_{:,}_intermediate".format(l)].weight.data
+
+                ip_bias = \
+                    self.ip.intermediate_layers.__dict__['_modules']["layer_{:,}_intermediate".format(l)].bias.data
+                ntk_bias = \
+                    self.ntk.intermediate_layers.__dict__['_modules']["layer_{:,}_intermediate".format(l)].bias.data
+
+                self.assertTrue((ip_weight == ntk_weight).all())
+                self.assertTrue((ip_bias == ntk_bias).all())
+
+            self.assertTrue((self.ip.output_layer.weight.data == self.ntk.output_layer.weight.data).all())
+            self.assertTrue((self.ip.output_layer.bias.data == self.ntk.output_layer.bias.data).all())
+
     def test_initial_gaussian_output_ntk(self):
         n_trials = 250
         widths = [128, 256, 512, 1024]
@@ -189,16 +221,6 @@ class TestFCabcParam(unittest.TestCase):
         plt.legend()
         plt.savefig(os.path.join(FIGURES_DIR, 'ip_init.png'))
         plt.show()
-
-    def test_copy_params_from_model(self):
-        self.muP.copy_initial_params_from_model(self.ntk)
-        self.ip.copy_initial_params_from_model(self.ntk)
-        for l in range(self.base_model_config.architecture["n_layers"]):
-            self.assertTrue((self.muP.U[l] == self.ntk.U[l]).all())
-            self.assertTrue((self.ip.U[l] == self.ntk.U[l]).all())
-
-            self.assertTrue((self.muP.v[l] == self.ntk.v[l]).all())
-            self.assertTrue((self.ip.v[l] == self.ntk.v[l]).all())
 
 
 if __name__ == '__main__':

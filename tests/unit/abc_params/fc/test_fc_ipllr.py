@@ -199,6 +199,46 @@ class TestFcIPLLR(unittest.TestCase):
                                                      [self.width ** (+ 2) for _ in range(1, L)] +
                                                      [self.width ** (+ 1)])
 
+    def test_ipllr_vs_ip(self):
+        n_warmup_steps = int(10e5)
+        n_samples = 10000
+        batch_size = 128
+        n_batches = (n_samples // batch_size) + 1
+
+        xs = torch.rand(size=(n_samples, self.input_size))
+        ys = torch.randint(high=10, size=(n_samples,))
+        batches = [(xs[i * batch_size: (i+1) * batch_size, ], ys[i * batch_size: (i+1) * batch_size])
+                   for i in range(n_batches)]
+
+        Ls = [2, 3, 4, 5, 10]
+        base_lrs = [0.001, 0.01, 0.1]
+
+        for L in Ls:
+            for base_lr in base_lrs:
+                model_config = deepcopy(self.base_model_config)
+                model_config.scheduler.params['n_warmup_steps'] = n_warmup_steps
+                model_config.architecture['n_layers'] = L + 1
+                model_config.optimizer.params['lr'] = base_lr
+
+                ipllr = FcIPLLR(model_config)
+                model_config.scheduler = None
+                ip = StandardFCIP(model_config)
+
+                ipllr.copy_initial_params_from_model(ip, check_model=True)
+                ipllr.initialize_params()
+                ip.eval()
+                ipllr.eval()
+
+                with torch.no_grad():
+                    for i, batch in enumerate(batches):
+                        x, y = batch
+
+                        # outputs at initialization
+                        y_hat_llr = ipllr.forward(x)
+                        y_hat_ip = ip.forward(x)
+
+                        torch.testing.assert_allclose(y_hat_llr, y_hat_ip, rtol=1e-6, atol=1e-6)
+
 
 if __name__ == '__main__':
     unittest.main()

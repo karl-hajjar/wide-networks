@@ -178,18 +178,26 @@ class BaseABCParam(BaseModel):
                 self.output_layer.bias.copy_(self.init_scales[self.n_layers - 1] * self.v[self.n_layers-1].data)
 
     def _generate_standard_gaussians(self, std=math.sqrt(2.0)):
-        self.U = [torch.normal(mean=0, std=std, size=self.input_layer.weight.size(), requires_grad=False)]
-        self.U += [torch.normal(mean=0, std=std, size=(self.width, self.width), requires_grad=False)
-                   for _ in self.intermediate_layers]
-        self.U.append(torch.normal(mean=0, std=1.0, size=self.output_layer.weight.size(), requires_grad=False))
+        """
+        Generate Gaussian matrices U and vectors v without any scaling (i.e. the whose values do NOT depend on the width
+        of the network) with a given std, if those matrices and vectors are not already set.
+        :param std:
+        :return:
+        """
+        if not hasattr(self, "U") or (self.U is None):
+            self.U = [torch.normal(mean=0, std=std, size=self.input_layer.weight.size(), requires_grad=False)]
+            self.U += [torch.normal(mean=0, std=std, size=(self.width, self.width), requires_grad=False)
+                       for _ in self.intermediate_layers]
+            self.U.append(torch.normal(mean=0, std=1.0, size=self.output_layer.weight.size(), requires_grad=False))
 
-        if hasattr(self.input_layer, "bias"):
-            self.v = [torch.normal(mean=0, std=std, size=self.input_layer.bias.size(), requires_grad=False)]
+        if not hasattr(self, "v") or (self.v is None):
+            if hasattr(self.input_layer, "bias"):
+                self.v = [torch.normal(mean=0, std=std, size=self.input_layer.bias.size(), requires_grad=False)]
 
-        if self.bias:
-            self.v += [torch.normal(mean=0, std=std, size=layer.bias.size(), requires_grad=False)
-                       for layer in self.intermediate_layers]
-            self.v.append(torch.normal(mean=0, std=1.0, size=self.output_layer.bias.size(), requires_grad=False))
+            if self.bias:
+                self.v += [torch.normal(mean=0, std=std, size=layer.bias.size(), requires_grad=False)
+                           for layer in self.intermediate_layers]
+                self.v.append(torch.normal(mean=0, std=1.0, size=self.output_layer.bias.size(), requires_grad=False))
 
     def copy_initial_params_from_model(self, model, check_model=False):
         """
