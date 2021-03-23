@@ -10,17 +10,17 @@ class BaseMuP(BaseABCParam):
 
     def __init__(self, config, width: int = None):
         """
-        Base class for the muP parameterization where:
-         - a[0] = -1/2, a[l] = 0 for l in [1,L-1], a[L] = 1/2
+        Base class for the muP parameterization with L hidden layers where:
+         - a[0] = -1/2, a[l] = 0 for l in [1, L-1], a[L] = 1/2
          - b[l] = 1/2, for any l in [0, L]
          - c = 0
         :param config: the configuration to define the network (architecture, loss, optimizer)
         :param width: the common width (number of neurons) of all layers except the last.
         """
         self._set_n_layers(config.architecture)
-        L = self.n_layers
-        a = [-1/2] + [0 for _ in range(1, L-1)] + [1/2]
-        b = [1/2 for _ in range(L)]
+        L = self.n_layers - 1
+        a = [-1/2] + [0 for _ in range(1, L)] + [1/2]
+        b = [1/2 for _ in range(L+1)]
         c = 0
 
         # create optimizer, loss, activation, normalization

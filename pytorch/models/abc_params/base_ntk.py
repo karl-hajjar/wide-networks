@@ -10,7 +10,7 @@ class BaseNTK(BaseABCParam):
 
     def __init__(self, config, width: int = None):
         """
-        Base class for the NTK parameterization where:
+        Base class for the NTK parameterization with L hidden layers where:
          - a[0] = 0, a[l] = 1/2 for any l in [1, L]
          - b[l] = 0, for any l in [0, L]
          - c = 0
@@ -18,9 +18,9 @@ class BaseNTK(BaseABCParam):
         :param width: the common width (number of neurons) of all layers except the last.
         """
         self._set_n_layers(config.architecture)
-        L = self.n_layers
-        a = [0.] + [1/2 for _ in range(1, L)]
-        b = [0 for _ in range(L)]
+        L = self.n_layers - 1
+        a = [0.] + [1/2 for _ in range(1, L+1)]
+        b = [0 for _ in range(L+1)]
         c = 0
 
         # create optimizer, loss, activation, normalization

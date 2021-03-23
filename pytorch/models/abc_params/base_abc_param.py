@@ -39,9 +39,9 @@ class BaseABCParam(BaseModel):
             c = [c[0]] * self.n_layers
         self.c = c  # learning rate scales
 
-        self.layer_scales = [self.width ** (-a[l]) for l in range(self.n_layers)]
-        self.init_scales = [self.width ** (-b[l]) for l in range(self.n_layers)]
-        self.lr_scales = [self.width ** (-c[l]) for l in range(self.n_layers)]
+        self.set_layer_scales_from_a()  # sets self.layer_scales
+        self.init_scales = self._set_scales_from_exponents(self.b)
+        self.set_lr_scales_from_c()  # sets self.lr_scales
 
         # create optimizer, loss, activation, normalization
         super().__init__(config)
@@ -114,9 +114,8 @@ class BaseABCParam(BaseModel):
         else:
             self.base_lr = optimizer_config.params['lr']
 
-        # Below, intermediate layers all share the same learning rate as in classically used abc-parameterizations.
-        # This can be modified to have striclty layer-wise learning rates where each layer would have its own
-        # parameter group.
+        # Layer-wise learning rates : one parameter group per layer with its own lr
+        # In most abc-parameterization the intermediate layers will all share the same learning rate
         param_groups = \
             [{'params': self.input_layer.parameters(), 'lr': self.base_lr * self.lr_scales[0]}] + \
             [{'params': layer.parameters(), 'lr': self.base_lr * self.lr_scales[l+1]}
@@ -128,12 +127,27 @@ class BaseABCParam(BaseModel):
     def _get_opt_lr(self):
         return [param_group['lr'] for param_group in self.optimizer.param_groups]  # L+1 lrs, one for each layer
 
-    def set_layer_scales_from_a(self):
+    def _set_scales_from_exponents(self, exponents):
         """
-        To use in case we want to change the values of abc during the course of training.
+        Returns the list [m^{-q} for q in exponents].
+        :param exponents: a list of floats or ints
         :return:
         """
-        self.layer_scales = [self.width ** (-self.a[l]) for l in range(self.n_layers)]
+        return [self.width ** (-exponents[l]) for l in range(self.n_layers)]
+
+    def set_layer_scales_from_a(self):
+        """
+        To use in case we want to change the values of a during the course of training.
+        :return:
+        """
+        self.layer_scales = self._set_scales_from_exponents(self.a)
+
+    def set_lr_scales_from_c(self):
+        """
+        To use in case we want to change the values of c during the course of training.
+        :return:
+        """
+        self.lr_scales = self._set_scales_from_exponents(self.c)
 
     def initialize_params(self, init_config=None):
         """

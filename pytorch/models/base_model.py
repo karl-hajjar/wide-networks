@@ -6,6 +6,7 @@ from pytorch.configs.model import ModelConfig
 from pytorch.activations import get_activation
 from pytorch.losses import get_loss
 from pytorch.optimizers import get_optimizer
+from pytorch.schedulers import get_scheduler
 from pytorch.normalizations import get_norm
 from pytorch.initializers import get_initializer
 
@@ -33,6 +34,7 @@ class BaseModel(LightningModule):
                              "0. Parameters have to be defined in the _build_model() method.")
         else:  # only set the optimizer if some parameters have been already defined
             self._set_optimizer(config.optimizer)
+        self._set_scheduler(config.scheduler)
         self.initialize_params(config.initializer)  # initialize the parameters using the config
 
         # define hparams for later logging
@@ -95,6 +97,19 @@ class BaseModel(LightningModule):
                 self.optimizer = optimizer(params, **optimizer_config.params)
             except Exception as e:
                 raise Exception("Exception while trying to create the optimizer : {}".format(e))
+
+    def _set_scheduler(self, scheduler_config=None):
+        if scheduler_config is None:
+            self.scheduler = None
+        else:
+            scheduler = get_scheduler(scheduler_config.name)
+            if not hasattr(scheduler_config, "params"):
+                self.scheduler = scheduler()
+            else:
+                try:
+                    self.scheduler = scheduler(**scheduler_config.params)
+                except Exception as e:
+                    raise Exception("Exception while trying to create the scheduler : {}".format(e))
 
     def _set_normalization(self, norm_config):
         if norm_config is None:

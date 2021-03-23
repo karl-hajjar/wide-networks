@@ -21,9 +21,6 @@ class FCIP(BaseIP):
             self._name = "FCIP"
         self._name = '{}_{}_{}'.format(self._name, self.width, self.n_layers)
 
-        # define an attribute to hold all the history of train/val/test metrics for later plotting /analysing
-        self.results = {'training': [], 'validation': [], 'test': []}
-
     def _build_model(self, config):
         """
         Simply build the necessary objects which will hold all the trainable parameters and name them appropriately.

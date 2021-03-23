@@ -12,12 +12,12 @@ EXPERIMENTS_DIR = 'experiments'
 MODEL_NAME = 'standard_fc_ip_mnist'
 CONFIG_FILE = 'standard_fc_ip_mnist.yaml'
 
-Ls = [2, 3]  # n_layers - 1
-WIDTHS = [128, 256, 512, 1024, 1400]
+# Ls = [2, 3]  # n_layers - 1
+# WIDTHS = [128, 256, 512, 1024, 1400]
 # Ls = [2]  # n_layers - 1
 # WIDTHS = [128]
-# Ls = [4, 5]  # n_layers - 1
-# WIDTHS = [128, 256, 512, 1024]
+Ls = [4, 5]  # n_layers - 1
+WIDTHS = [128, 256, 512, 1024]
 
 
 @click.command()

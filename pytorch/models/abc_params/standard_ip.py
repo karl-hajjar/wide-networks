@@ -20,7 +20,7 @@ class StandardIP(BaseIP):
         :param width: the common width (number of neurons) of all layers except the last.
         """
         self._set_n_layers(config.architecture)
-        L = self.n_layers
+        L = self.n_layers - 1
         c = get_standard_mf_lr_exponents(L)
 
         super().__init__(config, c, width)

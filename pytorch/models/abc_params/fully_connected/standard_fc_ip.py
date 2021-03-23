@@ -1,5 +1,3 @@
-from torch import nn
-
 from pytorch.models.abc_params.standard_ip import StandardIP
 from .ip import FCIP
 

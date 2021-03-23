@@ -46,5 +46,5 @@ def get_standard_mf_lr_exponents(L: int):
     :param L: int, number of hidden layers, i.e. the total number of layers is L+1.
     :return: list of (L+1) learning rate exponents
     """
-    c = [-1] + [-2 for _ in range(1, L - 1)] + [-1]
+    c = [-1] + [-2 for _ in range(1, L)] + [-1]
     return c

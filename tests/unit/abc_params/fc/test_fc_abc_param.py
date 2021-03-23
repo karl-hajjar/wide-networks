@@ -47,7 +47,7 @@ class TestFCabcParam(unittest.TestCase):
         self.assertAlmostEqual(self.muP.init_scales[0], 1 / math.sqrt(self.muP.width), places=6)
         self.assertEqual(self.muP.lr_scales[0], 1)
 
-        for l in range(1, self.muP.n_layers-1):
+        for l in range(1, self.muP.n_layers - 1):
             self.assertEqual(self.muP.layer_scales[l], 1)
             self.assertAlmostEqual(self.muP.init_scales[l], 1 / math.sqrt(self.muP.width), places=6)
             self.assertEqual(self.muP.lr_scales[l], 1)
