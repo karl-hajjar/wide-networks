@@ -3,120 +3,294 @@ import numpy as np
 import pandas as pd
 from copy import deepcopy
 import math
+import logging
+import os
 
 import matplotlib.pyplot as plt
 import seaborn as sns
 sns.set_style('darkgrid')
 
-
-def generate_init_outputs(model_class, n_trials, widths, config, x=None, bias=False, **args):
-    if x is None:
-        x = 2 * torch.rand(config.architecture["input_size"], requires_grad=False) - 1
-    norm_2_x = torch.norm(x, 2).item()
-    if np.abs(norm_2_x - 1) > 1e-6:
-        x = x / norm_2_x  # normalized x
-
-    results_df = pd.DataFrame(columns=['m', 'output', 'abs output', 'squared output'], dtype=float)
-    idx = 0
-
-    for width in widths:
-        config = deepcopy(config)
-        config.architecture["width"] = width
-        config.architecture["bias"] = False
-        model = model_class(config, width=None, **args)
-
-        for _ in range(n_trials):
-            model.train()
-            model.initialize_params(config.initializer)
-            if not bias:
-                with torch.no_grad():
-                    model.input_layer.bias.data.fill_(0.)  # reset bias to zero
-            model.eval()
-            with torch.no_grad():
-                output = model.forward(x).detach()[0].item()
-                results_df.loc[idx, :] = [width, output, np.abs(output), output ** 2]
-                idx += 1
-
-    return results_df
+from utils.tools import load_pickle
 
 
-def plot_init_outputs_vs_m(fig_path, model_name, model_class, n_trials, widths, config, x=None, figsize=(12, 6),
-                           bias=False, x_scale='log', y_scale='log', save=True, show=True, marker='o', **args):
-    results_df = generate_init_outputs(model_class, n_trials, widths, config, x, bias, **args)
-    L = config.architecture['n_layers'] - 1
-    exponent = _get_exponent_from_name(L, activation=config.activation.name, name=model_name)
+def split_epoch_step_results(results, pop_keys=('lrs', 'all_losses')):
+    popped_results = dict()
+    for key in pop_keys:
+        if key in results['training'][0].keys():
+            popped_results[key] = []
+            for k in range(len(results['training'])):
+                popped_results[key].extend(results['training'][k].pop(key))
+
+    return results, popped_results
+
+
+def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, batch_size, bias):
+    """
+    Loads the results from multiple trials of the same experiment defined by the choice of L, width, activation, lr,
+    batch size, bias. Here we allow loading results for multiple experiments with different values for L and width.
+    :param Ls:
+    :param widths:
+    :param n_trials:
+    :param exp_dir:
+    :param base_exp:
+    :param activation:
+    :param lr:
+    :param batch_size:
+    :param bias:
+    :return:
+    """
+    res_dict = dict()
+    for L in Ls:
+        res_dict[L] = dict()
+        for width in widths:
+            res = []
+            for idx in range(1, n_trials + 1):
+                results_path = os.path.join(
+                    exp_dir,
+                    base_exp,
+                    'L={}_m={}'.format(L, width),
+                    'activation={}_lr={}_batchsize={}_bias={}'.format(activation, lr, batch_size, bias),
+                    'trial_{}'.format(idx),
+                    'results.pickle')
+                if not os.path.exists(results_path):
+                    logging.warning('results for L={} and m={} was not found'.format(L, width))
+                else:
+                    res.append(load_pickle(results_path, single=True))
+            res_dict[L][width] = res
+    return res_dict
+
+
+def get_epoch_step_results_from_trials(results, pop_keys=('lrs', 'all_losses')):
+    """
+    Split the results obtained from get_trial_results into epoch and step results. Multiple values of L and width are
+    thus expected in the keys of results.
+    :param results:
+    :param pop_keys:
+    :return:
+    """
+    epoch_res_dict = dict()
+    step_res_dict = dict()
+    for L in results.keys():
+        epoch_res_dict[L] = dict()
+        step_res_dict[L] = dict()
+        for width in results[L].keys():
+            epoch_res = []
+            step_res = []
+            for res in results[L][width]:
+                epoch_r, step_r = split_epoch_step_results(res, pop_keys=pop_keys)
+                epoch_res.append(epoch_r)
+                step_res.append(step_r)
+
+            epoch_res_dict[L][width] = epoch_res
+            step_res_dict[L][width] = step_res
+
+    return epoch_res_dict, step_res_dict
+
+
+def plot_metric_vs_time(L, results: [list, dict], metric: str, time: str, save_path: str, metric_name: str = None,
+                        mode: str = None, figsize=(16,10), marker='o', y_min=None, y_max=None, logscale=False,
+                        show=True, save=True):
+    """
+    Plots a certain metric either vs # optimization steps or vs # epochs. `time` can only be 'step' if `mode` is
+    'training'.
+    :param results: dictionary containing the results of a single trial or list of dictionaries containing the results
+    of multiple trials.
+    :param metric: str, the name of the metric to plot.
+    :param metric_name: str, the name to use in the legend of the plot for the mertic.
+    :param time: str, either 'epoch' or 'step'.
+    :param mode: str, 'training', 'validation', or None.
+    :param y_min: the minimum value of y, default None
+    :param y_max: the maximum value of y, default None
+    :return:
+
+    """
+    if time == 'step':
+        if mode == 'validation':
+            logging.warning("`mode` was 'validation' even if `time` was 'step'. `mode` will be set to 'training' by "
+                            "default.")
+        mode = 'training'
+    elif time == 'epoch':
+        if mode not in ['training', 'validation']:
+            raise ValueError("If `time` is 'epoch', `mode` must be one of 'training' or 'validation' but was {}".\
+                             format(time))
+    else:
+        raise ValueError("`time` must be one of 'step' or 'epoch' but was {}".format(time))
+
+    if isinstance(results, dict):
+        results = [results]
+
+    if metric_name is None:
+        metric_name = metric
+
+    if time == 'epoch':
+        ys = [[r[metric] for r in res[mode]] for res in results]
+    else:
+        marker = None
+        ys = [res[metric] for res in results]
 
     plt.figure(figsize=figsize)
-    plt.title('{} output at initialization vs m with L={} hidden layers'.format(model_name, L))
+    plt.title('{} {} vs # {}s with L={:,}'.format(mode, metric_name, time, L))
+    for i, y in enumerate(ys):
+        plt.plot(np.arange(1, len(y) + 1), y, marker=marker, label='trial {}'.format(i+1))
 
-    sns.lineplot(data=results_df, x='m', y='abs output', marker=marker, label='abs output')
-    plt.plot(widths, np.array(widths, dtype=float) ** (-exponent / 2), marker=marker,
-             label='m^(-{}/2)'.format(exponent))
+    if len(ys) > 1:
+        plt.legend()
 
-    g = sns.lineplot(data=results_df, x='m', y='squared output', marker=marker, label='squared output')
-    plt.plot(widths, np.array(widths, dtype=float) ** (-exponent), marker=marker,
-             label='m^(-{})'.format(exponent))
+    plt.xlabel(time)
 
-    if y_scale == 'log':
-        g.set(yscale="log")
+    plt.ylim(y_min, y_max)
+
+    if logscale:
         plt.yscale('log')
-        plt.ylabel('output (log scale)')
+        plt.ylabel('{} (log scale)'.format(metric_name))
     else:
-        plt.ylabel('output')
+        plt.ylabel('{}'.format(metric_name))
 
-    if x_scale == 'log':
-        g.set(xscale="log")
-        plt.xscale('log')
-        plt.xlabel('width (log scale)')
-    else:
-        plt.xlabel('width')
-
-    plt.legend()
-    if save:
-        plt.savefig(fig_path)
     if show:
         plt.show()
+    if save:
+        plt.savefig(save_path)
 
-    return results_df
+
+def plot_metric_vs_time_std(width: int, results: list, metric: str, time: str, ax=None, metric_name: str = None,
+                            mode: str = None, marker='o'):
+    """
+    Plots a certain metric either vs # optimization steps or vs # epochs averaged over multiple trials. `time` can
+    only be 'step' if `mode` is 'training'.
+    :param width: the width used to produce the results
+    :param results: list of dictionaries containing the results of multiple trials.
+    :param metric: str, the name of the metric to plot.
+    :param metric_name: str, the name to use in the legend of the plot for the mertic.
+    :param time: str, either 'epoch' or 'step'.
+    :param mode: str, 'training', 'validation', or None.
+    :return:
+
+    """
+    if time == 'step':
+        if mode == 'validation':
+            logging.warning("`mode` was 'validation' even if `time` was 'step'. `mode` will be set to 'training' by "
+                            "default.")
+        mode = 'training'
+    elif time == 'epoch':
+        if mode not in ['training', 'validation']:
+            raise ValueError("If `time` is 'epoch', `mode` must be one of 'training' or 'validation' but was {}".\
+                             format(time))
+    else:
+        raise ValueError("`time` must be one of 'step' or 'epoch' but was {}".format(time))
+
+    if metric_name is None:
+        metric_name = metric
+
+    if ax is None:
+        ax = plt.gca()
+
+    y_df = pd.DataFrame(columns=[time, metric_name], dtype=float)
+    idx = 0
+
+    if time == 'epoch':
+        for res in results:
+            for i, r in enumerate(res[mode]):
+                y_df.loc[idx, [time, metric_name]] = [i + 1, r[metric]]
+                idx += 1
+        # ys = [[r[metric] for r in res[mode]] for res in results]
+    else:
+        marker = None
+        for res in results:
+            for i, r in enumerate(res[metric]):
+                y_df.loc[idx, [time, metric_name]] = [i + 1, r]
+                idx += 1
+        # ys = [res[metric] for res in results]
+
+    sns.lineplot(data=y_df, x=time, y=metric_name, ax=ax, marker=marker, label='m={}'.format(width))
 
 
-def plot_init_outputs_dist(fig_path, model_name, model_class, n_trials, widths, config, x=None,
-                           figsize=(12, 6), save=True, show=True, *args):
-    results_df = generate_init_outputs(model_class, n_trials, widths, config, x, *args)
+def plot_metric_vs_time_std_widths(L, results: dict, metric: str, time: str, ax=None, metric_name: str = None,
+                                   mode: str = None, marker='o', y_min=None, y_max=None):
+    """
+    Plots a certain metric either vs # optimization steps or vs # epochs for multiple widths. `time` can only be 'step'
+    if `mode` is 'training'.
+    :param results: dictionary containing the results for different widths.
+    :param metric: str, the name of the metric to plot.
+    :param metric_name: str, the name to use in the legend of the plot for the mertic.
+    :param time: str, either 'epoch' or 'step'.
+    :param mode: str, 'training', 'validation', or None.
+    :param y_min: the minimum value of y, default None
+    :param y_max: the maximum value of y, default None
+    :return:
+    """
+    if time == 'step':
+        if mode == 'validation':
+            logging.warning("`mode` was 'validation' even if `time` was 'step'. `mode` will be set to 'training' by "
+                            "default.")
+        mode = 'training'
+    elif time == 'epoch':
+        if mode not in ['training', 'validation']:
+            raise ValueError("If `time` is 'epoch', `mode` must be one of 'training' or 'validation' but was {}".\
+                             format(time))
+    else:
+        raise ValueError("`time` must be one of 'step' or 'epoch' but was {}".format(time))
 
-    n = math.ceil(np.sqrt(len(widths)))
+    if ax is None:
+        ax = plt.gca()
+
+    if metric_name is None:
+        metric_name = metric
+
+    if L in results.keys():
+        results = results[L]
+
+    for width in results.keys():
+        plot_metric_vs_time_std(width, results[width], metric, time, ax, metric_name, mode, marker)
+
+    ax.set_ylim(y_min, y_max)
+
+
+def plot_metric_vs_time_std_L(fig_path: str, results: dict, metric: str, time: str, metric_name: str = None,
+                              mode: str = None, figsize=(12,6), marker='o', y_min=None, y_max=None, save=True,
+                              show=True):
+    """
+    Plots a certain metric either vs # optimization steps or vs # epochs for multiple widths. `time` can only be 'step'
+    if `mode` is 'training'.
+    :param results: dictionary containing the results for different number of layers and widths.
+    :param metric: str, the name of the metric to plot.
+    :param metric_name: str, the name to use in the legend of the plot for the mertic.
+    :param time: str, either 'epoch' or 'step'.
+    :param mode: str, 'training', 'validation', or None.
+    :param y_min: the minimum value of y, default None
+    :param y_max: the maximum value of y, default None
+    :return:
+    """
+    if time == 'step':
+        if mode == 'validation':
+            logging.warning("`mode` was 'validation' even if `time` was 'step'. `mode` will be set to 'training' by "
+                            "default.")
+        mode = 'training'
+    elif time == 'epoch':
+        if mode not in ['training', 'validation']:
+            raise ValueError("If `time` is 'epoch', `mode` must be one of 'training' or 'validation' but was {}".\
+                             format(time))
+    else:
+        raise ValueError("`time` must be one of 'step' or 'epoch' but was {}".format(time))
+
+    if metric_name is None:
+        metric_name = metric
+
+    n = math.ceil(np.sqrt(len(results)))
     fig, axs = plt.subplots(n, n)
-    fig.suptitle('{} output distribution at initialization'.format(model_name))
+    fig.suptitle('Standard IP {} {} vs # {}s'.format(mode, metric_name, time))
+    plt.setp(axs, ylim=(y_min, y_max))
 
-    xs = np.arange(start=-4.0, stop=4.0, step=0.1)
-    ys = (1 / np.sqrt(2 * math.pi)) * np.exp(-(xs ** 2) / 2)
-
-    for k, width in enumerate(widths):
+    for k, L in enumerate(results.keys()):
         i, j = divmod(k, n)
         ax = axs[i, j]
-        outputs = results_df.loc[results_df.m == width, 'output'].values
-        sns.histplot(outputs, kde=True, stat='density', ax=ax)
         ax.figure.set_size_inches(figsize[0], figsize[1])
-        ax.plot(xs, ys, label='std Gaussian', c='r')
+        plot_metric_vs_time_std_widths(L, results[L], metric, time, ax, metric_name, mode, marker,
+                                       y_min=None, y_max=None)
+        ax.set_title('L = {:,}'.format(L))
         ax.legend()
-        ax.set_xlabel('output')
-        ax.set_ylabel('output density')
-        ax.set_title('m = {:,}'.format(width))
 
     plt.legend()
     if save:
         plt.savefig(fig_path)
     if show:
         plt.show()
-
-
-def _get_exponent_from_name(L: int, activation: str, name: str):
-    if 'ntk' in name.lower():
-        return 0
-    elif 'mup' in name.lower():
-        return 1
-    elif 'ip' in name.lower():
-        if 'relu_' in activation:
-            q = int(activation.split('_')[1])
-            return q * L
-        return L

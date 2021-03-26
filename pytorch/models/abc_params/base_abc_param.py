@@ -157,7 +157,6 @@ class BaseABCParam(BaseModel):
         :return:
         """
         self._generate_standard_gaussians(self.std)
-        # self._generate_standard_gaussians(std=1.0)
         with torch.no_grad():
             # weights
             self.input_layer.weight.data.copy_(self.init_scales[0] * self.U[0].data)
@@ -237,11 +236,21 @@ class BaseABCParam(BaseModel):
             raise ValueError("U or v did not match the length of self.U or self.v")
         for l in range(self.n_layers):
             if U[l].size() != self.U[l].size():
-                raise ValueError("U[l] was of size {} whereas self.U[l] was of size {}".format(U[l].size(),
-                                                                                               self.U[l].size()))
-            if v[l].size() != self.v[l].size():
-                raise ValueError("v[l] was of size {} whereas self.v[l] was of size {}".format(v[l].size(),
-                                                                                               self.v[l].size()))
+                raise ValueError("U[{}] was of size {} whereas self.U[{}] was of size {}".format(l,
+                                                                                                 U[l].size(),
+                                                                                                 l,
+                                                                                                 self.U[l].size()))
+
+        if v[0].size() != self.v[0].size():
+            raise ValueError("v[0] was of size {} whereas self.v[0] was of size {}".format(v[0].size(),
+                                                                                           self.v[0].size()))
+        if self.bias:
+            for l in range(1, self.n_layers):
+                if v[l].size() != self.v[l].size():
+                    raise ValueError("v[{}] was of size {} whereas self.v[{}] was of size {}".format(l,
+                                                                                                     v[l].size(),
+                                                                                                     l,
+                                                                                                     self.v[l].size()))
 
     def forward(self, x):
         # all about optimization with Lightning can be found here (e.g. how to define a particular optim step) :
