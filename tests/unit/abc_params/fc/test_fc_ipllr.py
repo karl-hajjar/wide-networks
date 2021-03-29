@@ -660,9 +660,9 @@ class TestFcIPLLR(unittest.TestCase):
         batches = [(xs[i * batch_size: (i + 1) * batch_size, :], ys[i * batch_size: (i + 1) * batch_size, :])
                    for i in range(n_batches)]
 
-        Ls = [3, 4]
-        base_lrs = [0.01, 0.1, 1.0]
-        width = 1024
+        Ls = [3, 4, 5]
+        base_lrs = [0.01, 0.1, 1.0, 10.0]
+        width = 4000
         activation = 'relu'
         bias = False
 
@@ -783,7 +783,7 @@ class TestFcIPLLR(unittest.TestCase):
                 total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
 
                 torch.testing.assert_allclose(init_contrib + update_contrib, total_contrib,
-                                              rtol=1e-5, atol=1e-5)
+                                              rtol=1e-3, atol=1e-3)
 
                 contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
                     [model_name, 1, init_contrib.mean().item(), update_contrib.mean().item(),
@@ -805,7 +805,7 @@ class TestFcIPLLR(unittest.TestCase):
                     total_contrib = model.layer_scales[l-1] * layer.forward(x)
 
                     torch.testing.assert_allclose(init_contrib + update_contrib, total_contrib,
-                                                  rtol=1e-4, atol=1e-4)
+                                                  rtol=1e-3, atol=1e-3)
 
                     contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
                         [model_name, l, init_contrib.mean().item(), update_contrib.mean().item(),
@@ -821,7 +821,7 @@ class TestFcIPLLR(unittest.TestCase):
                 total_contrib = model.layer_scales[L] * model.output_layer.forward(x)
 
                 torch.testing.assert_allclose(init_contrib + update_contrib, total_contrib,
-                                              rtol=1e-5, atol=1e-5)
+                                              rtol=1e-3, atol=1e-3)
 
                 contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
                     [model_name, L+1, init_contrib.mean().item(), update_contrib.mean().item(),
@@ -834,6 +834,28 @@ class TestFcIPLLR(unittest.TestCase):
                 torch.testing.assert_allclose(y_hat_debug, y_hat, rtol=1e-5, atol=1e-5)
 
         return idx
+
+    def test_plot(self):
+        import matplotlib.pyplot as plt
+        import time
+
+        fig = plt.gcf()
+        fig.show()
+        fig.canvas.draw()
+
+        i = 1
+        while i < 10:
+            # compute something
+            plt.plot([i * 1], [i * 2])  # plot something
+
+            # update canvas immediately
+            plt.xlim([0, 100])
+            plt.ylim([0, 100])
+            # plt.pause(0.01)  # I ain't needed!!!
+            fig.canvas.draw()
+            i += 1
+
+            time.sleep(0.1)
 
 
 if __name__ == '__main__':

@@ -6,6 +6,7 @@ import math
 import logging
 from scipy.interpolate import lagrange
 from collections.abc import Iterable
+import time
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -19,17 +20,7 @@ def generate_1d_data(n_samples: int = 10):
     return xs, ys
 
 
-# def get_polynom_from_data(xs, ys):
-#     coefs = lagrange(xs, ys).coefficients[::-1]  # reverse coefficients so that they are in the right order
-#     return np.polynomial.Polynomial(coefs)
-#
-#
-# def plot_target_function(P, xs, ys, label='target fn', c='k', linewidth=2.0):
-#     plt.scatter(xs, ys, marker='o')
-#     x = np.arange(start=-1, stop=1.01, step=0.01)
-#     plt.plot(x, P(x), c='k')
-
-def fit_model(model, x, y, n_epochs=1, init_bias=False):
+def fit_model(model, x, y, n_epochs=1, init_bias=True):
     if not init_bias:
         with torch.no_grad():
             model.input_layer.bias.data.fill_(0.)
@@ -44,6 +35,9 @@ def fit_model(model, x, y, n_epochs=1, init_bias=False):
         if hasattr(model, 'scheduler') and (model.scheduler is not None):
             model.scheduler.step()
 
+    if not init_bias:
+        with torch.no_grad():
+            model.input_layer.bias.data.fill_(0.)
     model.eval()
 
 
@@ -80,5 +74,20 @@ def plot_model(model, xs, ys, label, x=None,  num=100, c='k', scatter=False):
         plt.plot(x, y, label=label)
 
 
+def plot_training(models, xs, ys, label, num=100, c='k', n_epochs=10, init_bias=True, secs=0.3, fig=None,
+                  figsize=(12, 6)):
+    plt.ion()
+    plot_model(models, xs, ys, label, x=None, num=num, c=c, scatter=True)
+    plt.draw()
+    plt.cla()
+    time.sleep(secs)
 
+    batch_xs = torch.unsqueeze(xs, 1)
+    batch_ys = torch.unsqueeze(ys, 1)
+    for i in range(n_epochs):
+        for model in models:
+            fit_model(model, batch_xs, batch_ys, n_epochs=1, init_bias=init_bias)
+        plot_model(models, xs, ys, label, x=None, num=num, c=c, scatter=True)
+        plt.draw()
+        time.sleep(secs)
 
