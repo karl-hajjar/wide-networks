@@ -7,7 +7,7 @@ class FcIPLLR(BaseIPLLR, FCIP):
     A class implementing a fully-connected IP-LLR parameterization with large initial learning rates.
     """
 
-    def __init__(self, config, width: int = None, n_warmup_steps: int = 1):
+    def __init__(self, config, width: int = None, n_warmup_steps: int = 1, lr_calibration_batches: list = None):
         """
         Class for a fully-connected IP-LLR parameterization with large initial learning rates:
           - a[0] = 0, a[l] = 1 for l in [1, L]
@@ -19,7 +19,7 @@ class FcIPLLR(BaseIPLLR, FCIP):
         :param n_warmup_steps: the number of optimization steps to take with the initial learning rates before switching
         to the standard Mean Field learning rates.
         """
-        BaseIPLLR.__init__(self, config, width, n_warmup_steps)
+        BaseIPLLR.__init__(self, config, width, n_warmup_steps, lr_calibration_batches)
 
     def _build_model(self, config):
         FCIP._build_model(self, config)

@@ -835,28 +835,6 @@ class TestFcIPLLR(unittest.TestCase):
 
         return idx
 
-    def test_plot(self):
-        import matplotlib.pyplot as plt
-        import time
-
-        fig = plt.gcf()
-        fig.show()
-        fig.canvas.draw()
-
-        i = 1
-        while i < 10:
-            # compute something
-            plt.plot([i * 1], [i * 2])  # plot something
-
-            # update canvas immediately
-            plt.xlim([0, 100])
-            plt.ylim([0, 100])
-            # plt.pause(0.01)  # I ain't needed!!!
-            fig.canvas.draw()
-            i += 1
-
-            time.sleep(0.1)
-
 
 if __name__ == '__main__':
     unittest.main()

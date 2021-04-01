@@ -2,6 +2,8 @@ from .base_ip import BaseIP
 from pytorch.schedulers import WarmupSwitchLR
 from utils.nn import get_standard_mf_lr_exponents
 
+import torch
+
 
 class BaseIPLLR(BaseIP):
     """
@@ -11,7 +13,7 @@ class BaseIPLLR(BaseIP):
     implemented in the child classes.
     """
 
-    def __init__(self, config, width: int = None, n_warmup_steps: int = 1):
+    def __init__(self, config, width: int = None, n_warmup_steps: int = 1, lr_calibration_batches: list = None):
         """
         Base class for the IP-LLR parameterization with L hidden layers where the initial learning rates are large and
         then switched to the the learning rates of standard Mean Field models after a certain number n_warmup_steps of
@@ -36,6 +38,9 @@ class BaseIPLLR(BaseIP):
         self.width = config.architecture['width']
         self.warm_lrs = self._set_scales_from_exponents(warm_lr_exponents)
 
+        # only used when defining the scheduler if the latter automatically calibrates the initial lr
+        self.lr_calibration_batches = lr_calibration_batches
+
         super().__init__(config, c, width)
 
     def _set_n_warmup_steps(self, scheduler_config, n_warmup_steps):
@@ -52,14 +57,16 @@ class BaseIPLLR(BaseIP):
     def _set_scheduler(self, scheduler_config=None):
         if not hasattr(scheduler_config, "params"):
             self.scheduler = WarmupSwitchLR(self.optimizer, initial_lrs=self.lr_scales, warm_lrs=self.warm_lrs,
-                                            base_lr=self.base_lr)
+                                            base_lr=self.base_lr, model=self, batches=self.lr_calibration_batches)
         else:
             try:
                 self.scheduler = WarmupSwitchLR(self.optimizer, initial_lrs=self.lr_scales, warm_lrs=self.warm_lrs,
-                                                base_lr=self.base_lr, **scheduler_config.params)
+                                                base_lr=self.base_lr, model=self, batches=self.lr_calibration_batches,
+                                                **scheduler_config.params)
             except Exception as e:
                 raise Exception("Exception while trying to create the scheduler : {}".format(e))
 
     def training_step(self, batch, batch_nb):
-        super().training_step(batch, batch_nb)
+        out = super().training_step(batch, batch_nb)
         self.scheduler.step()
+        return out

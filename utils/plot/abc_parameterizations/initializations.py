@@ -23,9 +23,9 @@ def generate_init_outputs(model_class, n_trials, widths, config, x=None, bias=Fa
         config = deepcopy(config)
         config.architecture["width"] = width
         config.architecture["bias"] = False
-        model = model_class(config, width=None, **args)
 
         for _ in range(n_trials):
+            model = model_class(config, width=None, **args)
             model.train()
             model.initialize_params(config.initializer)
             if not bias:

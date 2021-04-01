@@ -53,7 +53,7 @@ def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, b
                     'trial_{}'.format(idx),
                     'results.pickle')
                 if not os.path.exists(results_path):
-                    logging.warning('results for L={} and m={} was not found'.format(L, width))
+                    logging.warning('results for trial {:,} with L={:,} and m={:,} was not found'.format(idx, L, width))
                 else:
                     res.append(load_pickle(results_path, single=True))
             res_dict[L][width] = res

@@ -71,6 +71,9 @@ class ABCRunner(JobRunner):
                                                                          self.base_lr,
                                                                          self.batch_size,
                                                                          config_dict['architecture']['bias'])
+        if ('scheduler' in config_dict) and ('params' in config_dict['scheduler'].keys()) and \
+                ('n_warmup_steps' in config_dict['scheduler']['params'].keys()):
+            model_config += '_' + 'warmup={}'.format(config_dict['scheduler']['params']['n_warmup_steps'])
         self.model_config = model_config
 
     def _set_base_lr(self, config_dict):

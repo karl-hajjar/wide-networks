@@ -29,13 +29,13 @@ class BaseModel(LightningModule):
         self._set_normalization(config.normalization)
         self._set_loss(config.loss)
         self._build_model(config)
+        self.initialize_params(config.initializer)  # initialize the parameters using the config
         if len(list(self.parameters())) == 0:
             raise ValueError("Model has no parameters defined and optimizer cannot be defined: len(self.parameters) = "
                              "0. Parameters have to be defined in the _build_model() method.")
         else:  # only set the optimizer if some parameters have been already defined
             self._set_optimizer(config.optimizer)
         self._set_scheduler(config.scheduler)
-        self.initialize_params(config.initializer)  # initialize the parameters using the config
 
         # define hparams for later logging
         self.hparams = config.dict()

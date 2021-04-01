@@ -1,0 +1,37 @@
+name:
+  StandardFcIP
+
+architecture:
+  n_layers: 4
+  input_size: 784
+  width: 1024
+  bias: false
+  output_size: 10
+
+activation:
+  name: "relu"
+
+loss:
+  name: "cross_entropy"
+  params:
+    reduction: "mean"
+
+optimizer:
+  name: "sgd"
+  params:
+    lr: 0.01
+
+scheduler:
+  name: "warmup_switch"
+  params:
+    n_warmup_steps: 3
+
+initializer:
+  name: "custom"
+  params:
+    var: 2.0
+
+training:
+  batch_size: 128
+  n_epochs: 10
+  n_steps: 1.0e+4

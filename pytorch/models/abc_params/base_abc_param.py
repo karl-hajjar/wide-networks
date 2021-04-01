@@ -43,7 +43,7 @@ class BaseABCParam(BaseModel):
         self.init_scales = self._set_scales_from_exponents(self.b)
         self.set_lr_scales_from_c()  # sets self.lr_scales
 
-        # create optimizer, loss, activation, normalization
+        # create optimizer, loss, activation, normalization and initializes parameters
         super().__init__(config)
 
     def _set_width(self, config, width):
@@ -284,7 +284,8 @@ class BaseABCParam(BaseModel):
             acc = (pred_label == y).sum() / float(len(y))
 
         lrs_list = self._get_opt_lr()
-        lrs = {'input_layer': lrs_list[0], 'intermediate_layers': lrs_list[1], 'output_layer': lrs_list[2]}
+        lrs = {'input_layer': lrs_list[0], 'intermediate_layers': lrs_list[1],
+               'output_layer': lrs_list[self.n_layers - 1]}
 
         tensorboard_logs = {'training/loss': loss, 'training/likelihood': likelihood, 'training/accuracy': acc,
                             'training/predicted_label_proba': pred_proba.mean()}
