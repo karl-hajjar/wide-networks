@@ -10,8 +10,11 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
     A learning rate scheduler which simply switches from initial learning rate values to warm learning rate values after
     a certain number of warmup steps.
     """
+
+    DEFAULT_CALIBRATED_INITIAL_BASE_LR = 1.0
+
     def __init__(self, optimizer, initial_lrs, warm_lrs, n_warmup_steps=1, base_lr=0.01, last_epoch=-1,
-                 calibrate_base_lr=True, model=None, batches=None):
+                 calibrate_base_lr=True, model=None, batches=None, default_calibration=True):
         self._check_lrs(optimizer, initial_lrs, warm_lrs)
         self._check_warmup_steps(n_warmup_steps)
 
@@ -29,10 +32,16 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         # also possible is to reset _step_count to 0 after the call to the parent __init__
 
         if calibrate_base_lr:
-            if (model is None) or (batches is None):
-                raise ValueError("model and batches cannot be None when calibrating the initial base learning rate.")
-            initial_base_lr = self.calibrate_base_lr(model, batches)
-            self.initial_base_lrs = [initial_base_lr] * len(self.initial_lrs)
+            if not default_calibration:
+                if (model is None) or (batches is None):
+                    raise ValueError("model and batches cannot be None when calibrating the initial base learning "
+                                     "rate.")
+                initial_base_lr = self.calibrate_base_lr(model, batches)
+            else:
+                initial_base_lr = self.DEFAULT_CALIBRATED_INITIAL_BASE_LR
+
+            self.initial_base_lrs = initial_base_lr
+            # [initial_base_lr] * len(self.initial_lrs)
         else:
             self.initial_base_lrs = [base_lr] * len(self.initial_lrs)
 
@@ -55,8 +64,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
 
     @staticmethod
     def calibrate_base_lr(model, batches):
-        logger = logging.getLogger()
-        logger.info("Calibrating initial base learning rate")
+        logging.info("Calibrating initial base learning rate")
 
         # use a copy of the model and optimizer so as not to modify the parameters of the object passed
         model_ = deepcopy(model)
@@ -105,26 +113,29 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             update_contrib = F.linear(x, Delta_W_1, Delta_b_1)
 
             ratio = init_contrib.abs().mean() / update_contrib.abs().mean()
+            base_lr = ratio.item()
 
-            # x_1 = model_.activation((model_.width ** (-model_.a[0])) * model_.input_layer.forward(x))
-            #
-            # layer_key = "layer_{:,}_intermediate".format(2)
-            # layer = getattr(model_.intermediate_layers, layer_key)
-            # init_layer = getattr(initial_model.intermediate_layers, layer_key)
-            #
-            # Delta_W_2 = (model_.width ** (-model_.a[1])) * (layer.weight.data - init_layer.weight.data)
-            # init_contrib = (model_.width ** (-model_.a[1])) * init_layer.forward(x_1)
-            # update_contrib = F.linear(x_1, Delta_W_2)
+            x_1 = model_.activation((model_.width ** (-model_.a[0])) * model_.input_layer.forward(x))
+
+            layer_key = "layer_{:,}_intermediate".format(2)
+            layer = getattr(model_.intermediate_layers, layer_key)
+            init_layer = getattr(initial_model.intermediate_layers, layer_key)
+
+            Delta_W_2 = (model_.width ** (-model_.a[1])) * (layer.weight.data - init_layer.weight.data)
+            init_contrib = (model_.width ** (-model_.a[1])) * init_layer.forward(x_1)
+            update_contrib = F.linear(x_1, Delta_W_2)
 
             # mean_abs_activations.append(x.abs().mean().item())
 
-        base_lr = ratio.item()
-
+        print('initial base lr :', base_lr)
         return base_lr
 
     def _set_param_group_lrs(self, base_lrs: [float, list] = None):
         if base_lrs is None:
             base_lrs = [self.base_lr] * len(self.initial_lrs)
+        elif isinstance(base_lrs, float):
+            base_lrs = [base_lrs] * len(self.initial_lrs)
+
         for i, param in enumerate(self.optimizer.param_groups):
             param['lr'] = base_lrs[i] * self.current_lrs[i]
 

@@ -52,6 +52,7 @@ def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, b
                     'activation={}_lr={}_batchsize={}_bias={}'.format(activation, lr, batch_size, bias),
                     'trial_{}'.format(idx),
                     'results.pickle')
+                print(results_path)
                 if not os.path.exists(results_path):
                     logging.warning('results for trial {:,} with L={:,} and m={:,} was not found'.format(idx, L, width))
                 else:
