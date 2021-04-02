@@ -295,13 +295,16 @@ class TestCalibrateBaseLR(unittest.TestCase):
 
         batches = list(self.train_data_loader)
         print('len(batches) :', len(batches))
+        for L in Ls:
+            config.architecture['n_layers'] = L + 1
+            for width in widths:
+                config.architecture['width'] = width
 
-        for base_lr in base_lrs:
-            config.optimizer.params['lr'] = base_lr
-            for L in Ls:
-                config.architecture['n_layers'] = L + 1
-                for width in widths:
-                    config.architecture['width'] = width
+                config.scheduler = None
+                base_muP = FCmuP(config)
+
+                for base_lr in base_lrs:
+                    config.optimizer.params['lr'] = base_lr
 
                     config.scheduler = None
                     muP = FCmuP(config)
@@ -312,7 +315,11 @@ class TestCalibrateBaseLR(unittest.TestCase):
                     # config.scheduler.params['default_calibration'] = False
                     ipllr_calib = FcIPLLR(config, n_warmup_steps=12, lr_calibration_batches=batches)
 
-                    ipllr_calib.copy_initial_params_from_model(muP)
+                    # set init from same model
+                    muP.copy_initial_params_from_model(base_muP)
+                    muP.initialize_params()
+
+                    ipllr_calib.copy_initial_params_from_model(base_muP)
                     ipllr_calib.initialize_params()
 
                     muP_init = deepcopy(muP)
@@ -327,7 +334,7 @@ class TestCalibrateBaseLR(unittest.TestCase):
                         # batch_nb = 1 + step * n_batches % len(batches)
                         # print('batch_nb:', batch_nb)
                         # reduced_batches = batches[batch_nb: batch_nb + n_batches]
-                        reduced_batches = batches[-10:]
+                        reduced_batches = batches[-n_batches:]
                         # print('len(reduced_batches) at step {} : {}'.format(step, len(reduced_batches)))
                         muP_contribs = self._compute_contributions('muP', muP, muP_init, reduced_batches)
                         ipllr_calib_contribs = self._compute_contributions('ipllr_calib', ipllr_calib, ipllr_calib_init,
@@ -353,12 +360,16 @@ class TestCalibrateBaseLR(unittest.TestCase):
         batches = list(self.train_data_loader)
         print('len(batches) :', len(batches))
 
-        for base_lr in base_lrs:
-            config.optimizer.params['lr'] = base_lr
-            for L in Ls:
-                config.architecture['n_layers'] = L + 1
-                for width in widths:
-                    config.architecture['width'] = width
+        for L in Ls:
+            config.architecture['n_layers'] = L + 1
+            for width in widths:
+                config.architecture['width'] = width
+
+                config.scheduler = None
+                base_muP = FCmuP(config)
+
+                for base_lr in base_lrs:
+                    config.optimizer.params['lr'] = base_lr
 
                     config.scheduler = None
                     muP = FCmuP(config)
@@ -368,6 +379,10 @@ class TestCalibrateBaseLR(unittest.TestCase):
                     # config.scheduler.params['calibrate_base_lr'] = True
                     # config.scheduler.params['default_calibration'] = False
                     ipllr_calib = FcIPLLR(config, n_warmup_steps=12, lr_calibration_batches=batches)
+
+                    # set init from same model
+                    muP.copy_initial_params_from_model(base_muP)
+                    muP.initialize_params()
 
                     ipllr_calib.copy_initial_params_from_model(muP)
                     ipllr_calib.initialize_params()
@@ -384,10 +399,10 @@ class TestCalibrateBaseLR(unittest.TestCase):
                         # train for oone step
                         self._train_models_one_step(muP, ipllr_calib, x, y)
 
-                        batch_nb = 1 + step * n_batches % len(batches)
-                        print('batch_nb:', batch_nb)
-                        reduced_batches = batches[batch_nb: batch_nb + n_batches]
-                        print('len(reduced_batches) at step {} : {}'.format(step, len(reduced_batches)))
+                        # batch_nb = 1 + step * n_batches % len(batches)
+                        # print('batch_nb:', batch_nb)
+                        reduced_batches = batches[-n_batches:]
+                        # print('len(reduced_batches) at step {} : {}'.format(step, len(reduced_batches)))
                         muP_contribs = self._compute_contributions('muP', muP, muP_previous, reduced_batches)
                         ipllr_calib_contribs = self._compute_contributions('ipllr_calib', ipllr_calib,
                                                                            ipllr_calib_previous, reduced_batches)
@@ -400,6 +415,188 @@ class TestCalibrateBaseLR(unittest.TestCase):
                         print('calibrated ipllr contributions per layer : ')
                         print(ipllr_calib_contribs.groupby(by='layer')[['init', 'update', 'total']].mean())
                         print('\n\n')
+
+    def test_scales_with_previous_multiple_steps_muP(self):
+        n_steps = 10
+        widths = [4000]
+        Ls = [6]
+        n_batches = 10
+        base_lrs = [0.1, 0.01, 0.001]
+        config = deepcopy(self.base_model_config)
+
+        batches = list(self.train_data_loader)
+        print('len(batches) :', len(batches))
+
+        for L in Ls:
+            config.architecture['n_layers'] = L + 1
+            for width in widths:
+                config.architecture['width'] = width
+
+                config.scheduler = None
+                base_muP = FCmuP(config)
+
+                for base_lr in base_lrs:
+                    config.optimizer.params['lr'] = base_lr
+
+                    config.scheduler = None
+                    muP = FCmuP(config)
+
+                    scheduler_config = {'calibrate_base_lr': True, 'default_calibration': False}
+                    config.scheduler = BaseConfig(scheduler_config)
+                    # config.scheduler.params['calibrate_base_lr'] = True
+                    # config.scheduler.params['default_calibration'] = False
+                    ipllr_calib = FcIPLLR(config, n_warmup_steps=12, lr_calibration_batches=batches)
+
+                    # set init from same model
+                    muP.copy_initial_params_from_model(base_muP)
+                    muP.initialize_params()
+
+                    ipllr_calib.copy_initial_params_from_model(muP)
+                    ipllr_calib.initialize_params()
+
+                    muP_init = deepcopy(muP)
+                    ipllr_calib_init = deepcopy(ipllr_calib)
+
+                    for step in range(n_steps):
+                        print('##### step {} ####'.format(step))
+                        # first train the models for one step
+                        x, y = batches[step]
+
+                        # copy models at current step
+                        muP_previous = deepcopy(muP)
+                        ipllr_calib_previous = deepcopy(ipllr_calib)
+
+                        # train for oone step
+                        self._train_models_one_step(muP, ipllr_calib, x, y)
+
+                        # batch_nb = 1 + step * n_batches % len(batches)
+                        # print('batch_nb:', batch_nb)
+                        reduced_batches = batches[-n_batches:]
+                        # print('len(reduced_batches) at step {} : {}'.format(step, len(reduced_batches)))
+                        muP_contribs = \
+                            self._compute_contributions_with_previous('muP', muP, muP_init, muP_previous,
+                                                                      reduced_batches)
+                        ipllr_calib_contribs = \
+                            self._compute_contributions_with_previous('ipllr_calib', ipllr_calib, ipllr_calib_init,
+                                                                      ipllr_calib_previous, reduced_batches)
+                        print('---- For L = {:,} and base_lr = {} ----'.format(L, base_lr))
+
+                        print('muP contributions per layer : ')
+                        print(muP_contribs.groupby(by='layer')[['init', 'Delta_h', 'delta_h', 'total']].mean())
+                        print('')
+
+                        print('calibrated ipllr contributions per layer : ')
+                        print(ipllr_calib_contribs.groupby(by='layer')[['init', 'Delta_h', 'delta_h', 'total']].mean())
+                        print('\n\n')
+
+    @staticmethod
+    def _compute_contributions_with_previous(model_name, model, model_init, model_previous, batches):
+        model.eval()
+        model_init.eval()
+        model_previous.eval()
+
+        contributions_df = pd.DataFrame(columns=['model', 'layer', 'init', 'Delta_h', 'delta_h', 'total', 'id'])
+        contributions_df.loc[:, ['init',  'Delta_h', 'delta_h', 'total', 'id']] = \
+            contributions_df.loc[:, ['init', 'Delta_h', 'delta_h', 'total', 'id']].astype(float)
+
+        idx = 0
+
+        L = model.n_layers - 1
+        with torch.no_grad():
+            losses = []
+            for i, batch in enumerate(batches):
+                x, y = batch
+                with torch.no_grad():
+                    x_0 = x.clone().detach()
+
+                # input layer
+                Delta_W = (model.width ** (-model.a[0])) * (model.input_layer.weight.data -
+                                                            model_init.input_layer.weight.data)
+                Delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
+                                                            model_init.input_layer.bias.data)
+
+                delta_W = (model.width ** (-model.a[0])) * (model.input_layer.weight.data -
+                                                            model_previous.input_layer.weight.data)
+                delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
+                                                            model_previous.input_layer.bias.data)
+
+                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x)
+                Delta_h = F.linear(x, Delta_W, Delta_b)
+                delta_h = F.linear(x, delta_W, delta_b)
+                total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
+
+                torch.testing.assert_allclose(init_contrib + Delta_h, total_contrib,
+                                              rtol=1e-3, atol=1e-3)
+
+                # contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
+                #     [model_name, 1, init_contrib.mean().item(), update_contrib.mean().item(),
+                #      total_contrib.mean().item(), i]
+                contributions_df.loc[idx, ['model', 'layer', 'init', 'Delta_h', 'delta_h', 'total', 'id']] = \
+                    [model_name, 1, init_contrib.abs().mean().item(), Delta_h.abs().mean().item(),
+                     delta_h.abs().mean().item(), total_contrib.abs().mean().item(), i]
+                idx += 1
+
+                x = model.activation(total_contrib)
+
+                # intermediate layer grads
+                for l in range(2, L + 1):
+                    layer_key = "layer_{:,}_intermediate".format(l)
+                    layer = getattr(model.intermediate_layers, layer_key)
+                    init_layer = getattr(model_init.intermediate_layers, layer_key)
+                    previous_layer = getattr(model_previous.intermediate_layers, layer_key)
+
+                    Delta_W = (model.width ** (-model.a[l - 1])) * (layer.weight.data - init_layer.weight.data)
+                    delta_W = (model.width ** (-model.a[l - 1])) * (layer.weight.data - previous_layer.weight.data)
+
+                    init_contrib = model_init.layer_scales[l - 1] * init_layer.forward(x)
+                    Delta_h = F.linear(x, Delta_W)
+                    delta_h = F.linear(x, delta_W)
+                    total_contrib = model.layer_scales[l - 1] * layer.forward(x)
+
+                    torch.testing.assert_allclose(init_contrib + Delta_h, total_contrib,
+                                                  rtol=1e-2, atol=1e-2)
+
+                    # contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
+                    #     [model_name, l, init_contrib.mean().item(), update_contrib.mean().item(),
+                    #      total_contrib.mean().item(), i]
+                    contributions_df.loc[idx, ['model', 'layer', 'init', 'Delta_h', 'delta_h', 'total', 'id']] = \
+                        [model_name, l, init_contrib.abs().mean().item(), Delta_h.abs().mean().item(),
+                         delta_h.abs().mean().item(), total_contrib.abs().mean().item(), i]
+                    idx += 1
+
+                    x = model.activation(total_contrib)
+
+                # output layer
+                Delta_W = (model.width ** (-model.a[L])) * (model.output_layer.weight.data -
+                                                            model_init.output_layer.weight.data)
+                delta_W = (model.width ** (-model.a[L])) * (model.output_layer.weight.data -
+                                                            model_previous.output_layer.weight.data)
+
+                init_contrib = model_init.layer_scales[L] * model_init.output_layer.forward(x)
+                Delta_h = F.linear(x, Delta_W)
+                delta_h = F.linear(x, delta_W)
+                total_contrib = model.layer_scales[L] * model.output_layer.forward(x)
+
+                torch.testing.assert_allclose(init_contrib + Delta_h, total_contrib,
+                                              rtol=1e-2, atol=1e-2)
+
+                # contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
+                #     [model_name, L + 1, init_contrib.mean().item(), update_contrib.mean().item(),
+                #      total_contrib.mean().item(), i]
+                contributions_df.loc[idx, ['model', 'layer', 'init', 'Delta_h', 'delta_h', 'total', 'id']] = \
+                    [model_name, L + 1, init_contrib.abs().mean().item(), Delta_h.abs().mean().item(),
+                     delta_h.abs().mean().item(), total_contrib.abs().mean().item(), i]
+                idx += 1
+
+                y_hat_debug = total_contrib
+                y_hat = model.forward(x_0)
+
+                torch.testing.assert_allclose(y_hat_debug, y_hat, rtol=1e-5, atol=1e-5)
+
+                losses.append(model.loss(y_hat, y).item())
+
+        print('average validation loss for {} : {}'.format(model_name, np.mean(losses)))
+        return contributions_df
 
 
 if __name__ == '__main__':
