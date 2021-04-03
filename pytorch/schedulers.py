@@ -41,15 +41,15 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             else:
                 initial_base_lrs = self.DEFAULT_CALIBRATED_INITIAL_BASE_LR
 
-            # self.initial_base_lrs = initial_base_lrs
-            self.base_lr = initial_base_lrs
+            self.initial_base_lrs = initial_base_lrs
+            # self.base_lr = initial_base_lrs
             # [initial_base_lr] * len(self.initial_lrs)
         else:
-            self.base_lr = [base_lr] * len(self.initial_lrs)
-            # self.initial_base_lrs = [base_lr] * len(self.initial_lrs)
+            # self.base_lr = [base_lr] * len(self.initial_lrs)
+            self.initial_base_lrs = [base_lr] * len(self.initial_lrs)
 
-        # self._set_param_group_lrs(self.initial_base_lrs)
-        self._set_param_group_lrs(self.base_lr)
+        self._set_param_group_lrs(self.initial_base_lrs)
+        # self._set_param_group_lrs(self.base_lr)
 
     @staticmethod
     def _check_lrs(optimizer, initial_lrs, warm_lrs):
@@ -66,74 +66,6 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         if n_warmup_steps <= 0:
             raise ValueError("`n_warmup_steps` argument must be > 0")
 
-    # @staticmethod
-    # def calibrate_base_lr(model, batches):
-    #     logging.info("Calibrating initial base learning rate")
-    #
-    #     # use a copy of the model and optimizer so as not to modify the parameters of the object passed
-    #     model_ = deepcopy(model)
-    #     # model_.initialize_params()
-    #     model_.train()
-    #
-    #     base_lr = 1.0
-    #     # set mock SGD optimizer with base_lr = 1.0
-    #     param_groups = \
-    #         [{'params': model_.input_layer.parameters(), 'lr': base_lr * model_.lr_scales[0]}] + \
-    #         [{'params': layer.parameters(), 'lr': base_lr * model_.lr_scales[l+1]}
-    #          for l, layer in enumerate(model_.intermediate_layers)] + \
-    #         [{'params': model_.output_layer.parameters(), 'lr': base_lr * model_.lr_scales[model_.n_layers - 1]}]
-    #     optimizer = SGD(param_groups, lr=1.0)
-    #
-    #     # remember initial weight values
-    #     initial_model = deepcopy(model_)
-    #
-    #     # take first step of optimization
-    #     x, y = batches[0]
-    #     y_hat = model_.forward(x)
-    #     loss = model_.loss(y_hat, y)
-    #     loss.backward()
-    #     optimizer.step()
-    #
-    #     # calibrate the lr using activations of second forward pass
-    #     model_.eval()
-    #     # mean_abs_activations = []
-    #     x, _ = batches[1]
-    #     with torch.no_grad():
-    #         # h = (self.width ** (-self.a[0])) * self.input_layer.forward(x)  # h_0, first layer pre-activations
-    #         # x = self.activation(h)  # x_0, first layer activations
-    #         #
-    #         # for l, layer in enumerate(self.intermediate_layers):  # L-1 intermediate layers
-    #         #     h = (self.width ** (-self.a[l + 1])) * layer.forward(x)  # h_l, layer l pre-activations
-    #         #     x = self.activation(h)  # x_l, l-th layer activations
-    #         #
-    #         # return (self.width ** (-self.a[self.n_layers - 1])) * self.output_layer.forward(x)  # f(x)
-    #
-    #         Delta_W_1 = (model_.width ** (-model_.a[0])) * (model_.input_layer.weight.data -
-    #                                                         initial_model.input_layer.weight.data)
-    #         Delta_b_1 = (model_.width ** (-model_.a[0])) * (model_.input_layer.bias.data -
-    #                                                         initial_model.input_layer.bias.data)
-    #
-    #         init_contrib = (model_.width ** (-model_.a[0])) * initial_model.input_layer.forward(x)
-    #         update_contrib = F.linear(x, Delta_W_1, Delta_b_1)
-    #
-    #         ratio = init_contrib.abs().mean() / update_contrib.abs().mean()
-    #         base_lr = ratio.item()
-    #
-    #         x_1 = model_.activation((model_.width ** (-model_.a[0])) * model_.input_layer.forward(x))
-    #
-    #         layer_key = "layer_{:,}_intermediate".format(2)
-    #         layer = getattr(model_.intermediate_layers, layer_key)
-    #         init_layer = getattr(initial_model.intermediate_layers, layer_key)
-    #
-    #         Delta_W_2 = (model_.width ** (-model_.a[1])) * (layer.weight.data - init_layer.weight.data)
-    #         init_contrib = (model_.width ** (-model_.a[1])) * init_layer.forward(x_1)
-    #         update_contrib = F.linear(x_1, Delta_W_2)
-    #
-    #         # mean_abs_activations.append(x.abs().mean().item())
-    #
-    #     print('initial base lr :', base_lr)
-    #     return base_lr
-
     @staticmethod
     def calibrate_base_lr(model, batches):
         logging.info("Calibrating initial base learning rate")
@@ -144,7 +76,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         model_.train()
 
         base_lr = 1.0
-        # set mock SGD optimizer with base_lr = 1.0
+        # set mock SGD optimizer with base_lr = 1.0 so that no additional scaling factor appears
         param_groups = \
             [{'params': model_.input_layer.parameters(), 'lr': base_lr * model_.lr_scales[0]}] + \
             [{'params': layer.parameters(), 'lr': base_lr * model_.lr_scales[l+1]}
@@ -168,15 +100,6 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         x, _ = batches[1]
         base_lrs = []
         with torch.no_grad():
-            # h = (self.width ** (-self.a[0])) * self.input_layer.forward(x)  # h_0, first layer pre-activations
-            # x = self.activation(h)  # x_0, first layer activations
-            #
-            # for l, layer in enumerate(self.intermediate_layers):  # L-1 intermediate layers
-            #     h = (self.width ** (-self.a[l + 1])) * layer.forward(x)  # h_l, layer l pre-activations
-            #     x = self.activation(h)  # x_l, l-th layer activations
-            #
-            # return (self.width ** (-self.a[self.n_layers - 1])) * self.output_layer.forward(x)  # f(x)
-
             Delta_W_1 = (model_.width ** (-model_.a[0])) * (model_.input_layer.weight.data -
                                                             initial_model.input_layer.weight.data)
             Delta_b_1 = (model_.width ** (-model_.a[0])) * (model_.input_layer.bias.data -
@@ -185,7 +108,14 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             init_contrib = (model_.width ** (-model_.a[0])) * initial_model.input_layer.forward(x)
             update_contrib = F.linear(x, Delta_W_1, Delta_b_1)
 
-            inv_scale = 1 / update_contrib.abs().mean()
+            if update_contrib.ndim == 2:
+                scale = (update_contrib ** 2).sum(dim=1) / model_.width  # e.g. fully connected
+            else:
+                scale = update_contrib.sum(dim=(1, 2)) / model_.width  # e.g. conv
+
+            inv_scale = 1 / scale.mean()
+
+            # inv_scale = 1 / update_contrib.abs().mean()
             base_lrs.append(inv_scale.item())
 
             x = model_.activation(init_contrib + inv_scale * update_contrib)  # should be Theta(1)
@@ -201,7 +131,13 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
                 init_contrib = initial_model.layer_scales[l - 1] * init_layer.forward(x)
                 update_contrib = F.linear(x, Delta_W)
 
-                inv_scale = 1 / update_contrib.abs().mean()
+                if update_contrib.ndim == 2:
+                    scale = (update_contrib ** 2).sum(dim=1) / model_.width  # e.g. fully connected
+                else:
+                    scale = update_contrib.sum(dim=(1, 2)) / model_.width  # e.g. conv
+
+                inv_scale = 1 / scale.mean()
+                # inv_scale = 1 / update_contrib.abs().mean()
                 base_lrs.append(inv_scale.item())
 
                 x = model_.activation(init_contrib + inv_scale * update_contrib)  # should be Theta(1)
@@ -213,7 +149,14 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             init_contrib = initial_model.layer_scales[model_.n_layers - 1] * initial_model.output_layer.forward(x)
             update_contrib = F.linear(x, Delta_W)
 
-            inv_scale = 1 / update_contrib.abs().mean()
+            if update_contrib.ndim == 2:
+                scale = (update_contrib ** 2).sum(dim=1) / model_.width  # e.g. fully connected
+            else:
+                scale = update_contrib.sum(dim=(1, 2)) / model_.width  # e.g. conv
+
+            inv_scale = 1 / scale.mean()
+
+            # inv_scale = 1 / update_contrib.abs().mean()
             base_lrs.append(inv_scale.item())
 
         print('initial base lr :', base_lrs)

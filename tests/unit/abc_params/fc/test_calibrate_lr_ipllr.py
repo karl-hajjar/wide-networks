@@ -418,7 +418,7 @@ class TestCalibrateBaseLR(unittest.TestCase):
 
     def test_scales_with_previous_multiple_steps_muP(self):
         n_steps = 10
-        widths = [4000]
+        widths = [1024]
         Ls = [6]
         n_batches = 10
         base_lrs = [0.1, 0.01, 0.001]
@@ -471,22 +471,23 @@ class TestCalibrateBaseLR(unittest.TestCase):
 
                         # batch_nb = 1 + step * n_batches % len(batches)
                         # print('batch_nb:', batch_nb)
-                        reduced_batches = batches[-n_batches:]
+                        next_batch = batches[step % len(batches)]
                         # print('len(reduced_batches) at step {} : {}'.format(step, len(reduced_batches)))
                         muP_contribs = \
-                            self._compute_contributions_with_previous('muP', muP, muP_init, muP_previous,
-                                                                      reduced_batches)
+                            self._compute_contributions_with_previous('muP', muP, muP_init, muP_previous, [next_batch])
                         ipllr_calib_contribs = \
                             self._compute_contributions_with_previous('ipllr_calib', ipllr_calib, ipllr_calib_init,
-                                                                      ipllr_calib_previous, reduced_batches)
+                                                                      ipllr_calib_previous, [next_batch])
                         print('---- For L = {:,} and base_lr = {} ----'.format(L, base_lr))
 
                         print('muP contributions per layer : ')
-                        print(muP_contribs.groupby(by='layer')[['init', 'Delta_h', 'delta_h', 'total']].mean())
+                        print(muP_contribs.groupby(by='layer')[['init', 'previous_h', 'previous_Delta_h', 'delta_h', 'Delta_h',
+                                                                'total']].mean())
                         print('')
 
                         print('calibrated ipllr contributions per layer : ')
-                        print(ipllr_calib_contribs.groupby(by='layer')[['init', 'Delta_h', 'delta_h', 'total']].mean())
+                        print(ipllr_calib_contribs.groupby(by='layer')[['init', 'previous_h', 'previous_Delta_h',
+                                                                        'delta_h', 'Delta_h',  'total']].mean())
                         print('\n\n')
 
     @staticmethod
@@ -495,9 +496,11 @@ class TestCalibrateBaseLR(unittest.TestCase):
         model_init.eval()
         model_previous.eval()
 
-        contributions_df = pd.DataFrame(columns=['model', 'layer', 'init', 'Delta_h', 'delta_h', 'total', 'id'])
-        contributions_df.loc[:, ['init',  'Delta_h', 'delta_h', 'total', 'id']] = \
-            contributions_df.loc[:, ['init', 'Delta_h', 'delta_h', 'total', 'id']].astype(float)
+        contributions_df = pd.DataFrame(columns=['model', 'layer', 'init', 'previous_h', 'previous_Delta_h', 'Delta_h',
+                                                 'delta_h', 'total', 'id'])
+        contributions_df.loc[:, ['init', 'previous_h', 'previous_Delta_h', 'Delta_h', 'delta_h', 'total', 'id']] = \
+            contributions_df.loc[:, ['init', 'previous_h', 'previous_Delta_h', 'Delta_h', 'delta_h', 'total', 'id']].\
+                astype(float)
 
         idx = 0
 
@@ -515,12 +518,20 @@ class TestCalibrateBaseLR(unittest.TestCase):
                 Delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
                                                             model_init.input_layer.bias.data)
 
+                previous_Delta_W = (model.width ** (-model.a[0])) * (model_previous.input_layer.weight.data -
+                                                                     model_init.input_layer.weight.data)
+                previous_Delta_b = (model.width ** (-model.a[0])) * (model_previous.input_layer.bias.data -
+                                                                     model_init.input_layer.bias.data)
+
                 delta_W = (model.width ** (-model.a[0])) * (model.input_layer.weight.data -
                                                             model_previous.input_layer.weight.data)
                 delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
                                                             model_previous.input_layer.bias.data)
 
                 init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x)
+                previous_h = model.layer_scales[0] * model_previous.input_layer.forward(x)
+
+                previous_Delta_h = F.linear(x, previous_Delta_W, previous_Delta_b)
                 Delta_h = F.linear(x, Delta_W, Delta_b)
                 delta_h = F.linear(x, delta_W, delta_b)
                 total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
@@ -531,9 +542,11 @@ class TestCalibrateBaseLR(unittest.TestCase):
                 # contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
                 #     [model_name, 1, init_contrib.mean().item(), update_contrib.mean().item(),
                 #      total_contrib.mean().item(), i]
-                contributions_df.loc[idx, ['model', 'layer', 'init', 'Delta_h', 'delta_h', 'total', 'id']] = \
-                    [model_name, 1, init_contrib.abs().mean().item(), Delta_h.abs().mean().item(),
-                     delta_h.abs().mean().item(), total_contrib.abs().mean().item(), i]
+                contributions_df.loc[idx, ['model', 'layer', 'init', 'previous_h', 'previous_Delta_h', 'Delta_h',
+                                           'delta_h', 'total', 'id']] = \
+                    [model_name, 1, init_contrib.abs().mean().item(), previous_h.abs().mean().item(),
+                     previous_Delta_h.abs().mean().item(), Delta_h.abs().mean().item(), delta_h.abs().mean().item(),
+                     total_contrib.abs().mean().item(), i]
                 idx += 1
 
                 x = model.activation(total_contrib)
@@ -546,9 +559,14 @@ class TestCalibrateBaseLR(unittest.TestCase):
                     previous_layer = getattr(model_previous.intermediate_layers, layer_key)
 
                     Delta_W = (model.width ** (-model.a[l - 1])) * (layer.weight.data - init_layer.weight.data)
+                    previous_Delta_W = (model.width ** (-model.a[l - 1])) * (previous_layer.weight.data -
+                                                                             init_layer.weight.data)
                     delta_W = (model.width ** (-model.a[l - 1])) * (layer.weight.data - previous_layer.weight.data)
 
                     init_contrib = model_init.layer_scales[l - 1] * init_layer.forward(x)
+                    previous_h = model.layer_scales[l - 1] * previous_layer.forward(x)
+
+                    previous_Delta_h = F.linear(x, previous_Delta_W)
                     Delta_h = F.linear(x, Delta_W)
                     delta_h = F.linear(x, delta_W)
                     total_contrib = model.layer_scales[l - 1] * layer.forward(x)
@@ -559,9 +577,11 @@ class TestCalibrateBaseLR(unittest.TestCase):
                     # contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
                     #     [model_name, l, init_contrib.mean().item(), update_contrib.mean().item(),
                     #      total_contrib.mean().item(), i]
-                    contributions_df.loc[idx, ['model', 'layer', 'init', 'Delta_h', 'delta_h', 'total', 'id']] = \
-                        [model_name, l, init_contrib.abs().mean().item(), Delta_h.abs().mean().item(),
-                         delta_h.abs().mean().item(), total_contrib.abs().mean().item(), i]
+                    contributions_df.loc[idx, ['model', 'layer', 'init', 'previous_h',  'previous_Delta_h',  'Delta_h',
+                                               'delta_h', 'total', 'id']] = \
+                        [model_name, l, init_contrib.abs().mean().item(), previous_h.abs().mean().item(),
+                         previous_Delta_h.abs().mean().item(), Delta_h.abs().mean().item(), delta_h.abs().mean().item(),
+                         total_contrib.abs().mean().item(), i]
                     idx += 1
 
                     x = model.activation(total_contrib)
@@ -569,10 +589,15 @@ class TestCalibrateBaseLR(unittest.TestCase):
                 # output layer
                 Delta_W = (model.width ** (-model.a[L])) * (model.output_layer.weight.data -
                                                             model_init.output_layer.weight.data)
+                previous_Delta_W = (model.width ** (-model.a[L])) * (model_previous.output_layer.weight.data -
+                                                                     model_init.output_layer.weight.data)
                 delta_W = (model.width ** (-model.a[L])) * (model.output_layer.weight.data -
                                                             model_previous.output_layer.weight.data)
 
                 init_contrib = model_init.layer_scales[L] * model_init.output_layer.forward(x)
+                previous_h = model.layer_scales[L] * model_previous.output_layer.forward(x)
+
+                previous_Delta_h = F.linear(x, previous_Delta_W)
                 Delta_h = F.linear(x, Delta_W)
                 delta_h = F.linear(x, delta_W)
                 total_contrib = model.layer_scales[L] * model.output_layer.forward(x)
@@ -583,9 +608,11 @@ class TestCalibrateBaseLR(unittest.TestCase):
                 # contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
                 #     [model_name, L + 1, init_contrib.mean().item(), update_contrib.mean().item(),
                 #      total_contrib.mean().item(), i]
-                contributions_df.loc[idx, ['model', 'layer', 'init', 'Delta_h', 'delta_h', 'total', 'id']] = \
-                    [model_name, L + 1, init_contrib.abs().mean().item(), Delta_h.abs().mean().item(),
-                     delta_h.abs().mean().item(), total_contrib.abs().mean().item(), i]
+                contributions_df.loc[idx, ['model', 'layer', 'init', 'previous_h',  'previous_Delta_h',  'Delta_h',
+                                           'delta_h', 'total', 'id']] = \
+                    [model_name, L + 1, init_contrib.abs().mean().item(), previous_h.abs().mean().item(),
+                     previous_Delta_h.abs().mean().item(), Delta_h.abs().mean().item(), delta_h.abs().mean().item(),
+                     total_contrib.abs().mean().item(), i]
                 idx += 1
 
                 y_hat_debug = total_contrib
