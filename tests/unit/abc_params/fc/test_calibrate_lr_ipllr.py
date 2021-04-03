@@ -417,11 +417,11 @@ class TestCalibrateBaseLR(unittest.TestCase):
                         print('\n\n')
 
     def test_scales_with_previous_multiple_steps_muP(self):
-        n_steps = 10
+        n_steps = 80
         widths = [1024]
         Ls = [6]
         n_batches = 10
-        base_lrs = [0.1, 0.01, 0.001]
+        base_lrs = [0.001]
         config = deepcopy(self.base_model_config)
 
         batches = list(self.train_data_loader)

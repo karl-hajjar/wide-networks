@@ -108,14 +108,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             init_contrib = (model_.width ** (-model_.a[0])) * initial_model.input_layer.forward(x)
             update_contrib = F.linear(x, Delta_W_1, Delta_b_1)
 
-            if update_contrib.ndim == 2:
-                scale = (update_contrib ** 2).sum(dim=1) / model_.width  # e.g. fully connected
-            else:
-                scale = update_contrib.sum(dim=(1, 2)) / model_.width  # e.g. conv
-
-            inv_scale = 1 / scale.mean()
-
-            # inv_scale = 1 / update_contrib.abs().mean()
+            inv_scale = 1.0 / update_contrib.abs().mean()
             base_lrs.append(inv_scale.item())
 
             x = model_.activation(init_contrib + inv_scale * update_contrib)  # should be Theta(1)
@@ -131,13 +124,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
                 init_contrib = initial_model.layer_scales[l - 1] * init_layer.forward(x)
                 update_contrib = F.linear(x, Delta_W)
 
-                if update_contrib.ndim == 2:
-                    scale = (update_contrib ** 2).sum(dim=1) / model_.width  # e.g. fully connected
-                else:
-                    scale = update_contrib.sum(dim=(1, 2)) / model_.width  # e.g. conv
-
-                inv_scale = 1 / scale.mean()
-                # inv_scale = 1 / update_contrib.abs().mean()
+                inv_scale = 1.0 / update_contrib.abs().mean()
                 base_lrs.append(inv_scale.item())
 
                 x = model_.activation(init_contrib + inv_scale * update_contrib)  # should be Theta(1)
@@ -149,14 +136,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             init_contrib = initial_model.layer_scales[model_.n_layers - 1] * initial_model.output_layer.forward(x)
             update_contrib = F.linear(x, Delta_W)
 
-            if update_contrib.ndim == 2:
-                scale = (update_contrib ** 2).sum(dim=1) / model_.width  # e.g. fully connected
-            else:
-                scale = update_contrib.sum(dim=(1, 2)) / model_.width  # e.g. conv
-
-            inv_scale = 1 / scale.mean()
-
-            # inv_scale = 1 / update_contrib.abs().mean()
+            inv_scale = 1.0 / update_contrib.abs().mean()
             base_lrs.append(inv_scale.item())
 
         print('initial base lr :', base_lrs)
