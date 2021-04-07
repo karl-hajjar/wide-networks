@@ -1,6 +1,5 @@
 import unittest
 import os
-import os
 from copy import deepcopy
 import torch
 import math
@@ -44,8 +43,8 @@ class TestCalibrateBaseLR(unittest.TestCase):
                                                'calibrate_base_lr': True}}
 
         self.base_model_config = ModelConfig(config_dict)
-        training_dataset, _ = load_data(download=False, flatten=True)
-        self.train_data_loader = DataLoader(training_dataset, shuffle=True, batch_size=self.batch_size)
+        self.training_dataset, _ = load_data(download=False, flatten=True)
+        self.train_data_loader = DataLoader(self.training_dataset, shuffle=True, batch_size=self.batch_size)
         self.batches = list(self.train_data_loader)
 
     def test_basic_calibration(self):
@@ -417,14 +416,15 @@ class TestCalibrateBaseLR(unittest.TestCase):
                         print('\n\n')
 
     def test_scales_with_previous_multiple_steps_muP(self):
-        n_steps = 80
+        n_steps = 200
         widths = [1024]
         Ls = [6]
         n_batches = 10
-        base_lrs = [0.001]
+        base_lrs = [0.01]
+        batch_size = 512
         config = deepcopy(self.base_model_config)
 
-        batches = list(self.train_data_loader)
+        batches = list(DataLoader(self.training_dataset, shuffle=True, batch_size=batch_size))
         print('len(batches) :', len(batches))
 
         for L in Ls:
@@ -471,7 +471,7 @@ class TestCalibrateBaseLR(unittest.TestCase):
 
                         # batch_nb = 1 + step * n_batches % len(batches)
                         # print('batch_nb:', batch_nb)
-                        next_batch = batches[step % len(batches)]
+                        next_batch = batches[(step + 1) % len(batches)]
                         # print('len(reduced_batches) at step {} : {}'.format(step, len(reduced_batches)))
                         muP_contribs = \
                             self._compute_contributions_with_previous('muP', muP, muP_init, muP_previous, [next_batch])

@@ -43,6 +43,8 @@ class BaseABCParam(BaseModel):
         self.init_scales = self._set_scales_from_exponents(self.b)
         self.set_lr_scales_from_c()  # sets self.lr_scales
 
+        self.d = config.architecture["input_size"]  # input dimension
+
         # create optimizer, loss, activation, normalization and initializes parameters
         super().__init__(config)
 
@@ -255,7 +257,7 @@ class BaseABCParam(BaseModel):
     def forward(self, x):
         # all about optimization with Lightning can be found here (e.g. how to define a particular optim step) :
         # https://pytorch-lightning.readthedocs.io/en/latest/optimizers.html
-        h = (self.width ** (-self.a[0])) * self.input_layer.forward(x)  # h_0, first layer pre-activations
+        h = (self.width ** (-self.a[0])) * self.input_layer.forward(x) / math.sqrt(self.d + 1)  # h_0 first pre-acts
         x = self.activation(h)  # x_0, first layer activations
 
         for l, layer in enumerate(self.intermediate_layers):  # L-1 intermediate layers

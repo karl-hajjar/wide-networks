@@ -3,6 +3,7 @@ from copy import deepcopy
 import logging
 from torch.optim import SGD
 import torch.nn.functional as F
+from typing import Union
 
 
 class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
@@ -14,7 +15,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
     DEFAULT_CALIBRATED_INITIAL_BASE_LR = 1.0
 
     def __init__(self, optimizer, initial_lrs, warm_lrs, n_warmup_steps=1, base_lr=0.01, last_epoch=-1,
-                 calibrate_base_lr=True, model=None, batches=None, default_calibration=True):
+                 calibrate_base_lr=True, model=None, batches=None, default_calibration=False):
         self._check_lrs(optimizer, initial_lrs, warm_lrs)
         self._check_warmup_steps(n_warmup_steps)
 
@@ -22,6 +23,11 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         self.warm_lrs = warm_lrs
         self.n_warmup_steps = n_warmup_steps
         self.base_lr = base_lr
+
+        # L = len(self.initial_lrs) - 1
+        # self.base_lr = [base_lr] + [base_lr ** (1 - l/L) for l in range(L)]
+        # assert len(self.base_lr) == len(self.initial_lrs)
+        # print('base_lr = {}, self.base_lr = {}'.format(base_lr, self.base_lr))
 
         self.current_lrs = initial_lrs
         self._last_lrs = None
@@ -46,7 +52,8 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             # [initial_base_lr] * len(self.initial_lrs)
         else:
             # self.base_lr = [base_lr] * len(self.initial_lrs)
-            self.initial_base_lrs = [base_lr] * len(self.initial_lrs)
+            # self.initial_base_lrs = [base_lr] * len(self.initial_lrs)
+            self.initial_base_lrs = self.base_lr
 
         self._set_param_group_lrs(self.initial_base_lrs)
         # self._set_param_group_lrs(self.base_lr)
@@ -142,7 +149,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         print('initial base lr :', base_lrs)
         return base_lrs
 
-    def _set_param_group_lrs(self, base_lrs: [float, list] = None):
+    def _set_param_group_lrs(self, base_lrs: Union[float, list] = None):
         if base_lrs is None:
             base_lrs = [self.base_lr] * len(self.initial_lrs)
         elif isinstance(base_lrs, float):
