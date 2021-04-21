@@ -254,10 +254,12 @@ class BaseABCParam(BaseModel):
                                                                                                      l,
                                                                                                      self.v[l].size()))
 
-    def forward(self, x):
+    def forward(self, x, normalize_first=True):
         # all about optimization with Lightning can be found here (e.g. how to define a particular optim step) :
         # https://pytorch-lightning.readthedocs.io/en/latest/optimizers.html
-        h = (self.width ** (-self.a[0])) * self.input_layer.forward(x) / math.sqrt(self.d + 1)  # h_0 first pre-acts
+        h = (self.width ** (-self.a[0])) * self.input_layer.forward(x)  # h_0 first layer pre-activations
+        if normalize_first:
+            h = h / math.sqrt(self.d + 1)
         x = self.activation(h)  # x_0, first layer activations
 
         for l, layer in enumerate(self.intermediate_layers):  # L-1 intermediate layers
