@@ -4,6 +4,7 @@ import logging
 from torch.optim import SGD
 import torch.nn.functional as F
 from typing import Union
+import math
 
 
 class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
@@ -112,8 +113,9 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             Delta_b_1 = (model_.width ** (-model_.a[0])) * (model_.input_layer.bias.data -
                                                             initial_model.input_layer.bias.data)
 
-            init_contrib = (model_.width ** (-model_.a[0])) * initial_model.input_layer.forward(x)
-            update_contrib = F.linear(x, Delta_W_1, Delta_b_1)
+            init_contrib = (model_.width ** (-model_.a[0])) * initial_model.input_layer.forward(x) / \
+                           math.sqrt(model_.d + 1)
+            update_contrib = F.linear(x, Delta_W_1, Delta_b_1) / math.sqrt(model_.d + 1)
 
             inv_scale = 1.0 / update_contrib.abs().mean()
             base_lrs.append(inv_scale.item())

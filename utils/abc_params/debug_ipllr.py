@@ -105,11 +105,11 @@ def compute_contributions_with_previous(model, model_init, model_previous, batch
             delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
                                                         model_previous.input_layer.bias.data)
 
-            init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x)
+            init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x) / math.sqrt(model_init.d + 1)
 
-            Delta_h = F.linear(x, Delta_W, Delta_b)
-            delta_h = F.linear(x, delta_W, delta_b)
-            total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
+            Delta_h = F.linear(x, Delta_W, Delta_b) / math.sqrt(model.d + 1)
+            delta_h = F.linear(x, delta_W, delta_b) / math.sqrt(model.d + 1)
+            total_contrib = model.layer_scales[0] * model.input_layer.forward(x) / math.sqrt(model.d + 1)
 
             torch.testing.assert_allclose(init_contrib + Delta_h, total_contrib,
                                           rtol=1e-3, atol=1e-3)
@@ -215,11 +215,11 @@ def compute_contributions_with_step_1(model_name, model, model_0, model_1, model
             delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
                                                         model_previous.input_layer.bias.data)
 
-            h_1 = model_1.layer_scales[0] * model_1.input_layer.forward(x)
-            Delta_h_1 = F.linear(x, Delta_W_1, Delta_b_1)
-            Delta_h = F.linear(x, Delta_W, Delta_b)
-            delta_h = F.linear(x, delta_W, delta_b)
-            total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
+            h_1 = model_1.layer_scales[0] * model_1.input_layer.forward(x) / math.sqrt(model_1.d + 1)
+            Delta_h_1 = F.linear(x, Delta_W_1, Delta_b_1) / math.sqrt(model_1.d + 1)
+            Delta_h = F.linear(x, Delta_W, Delta_b) / math.sqrt(model.d + 1)
+            delta_h = F.linear(x, delta_W, delta_b) / math.sqrt(model.d + 1)
+            total_contrib = model.layer_scales[0] * model.input_layer.forward(x) / math.sqrt(model.d + 1)
 
             contributions_df.loc[idx, ['model', 'layer', 'h_1', 'Delta_h_1', 'Delta_h', 'delta_h', 'h', 'id']] = \
                 [model_name, 1, h_1.abs().mean().item(), Delta_h_1.abs().mean().item(), Delta_h.abs().mean().item(),

@@ -31,7 +31,8 @@ class TestFcIPLLR(unittest.TestCase):
         self.L = config_dict['architecture']['n_layers'] - 1
         config_dict['optimizer']['params']['lr'] = self.base_lr
         config_dict['scheduler'] = {'name': 'warmup_switch',
-                                    'params': {'n_warmup_steps': self.n_warmup_steps}}
+                                    'params': {'n_warmup_steps': self.n_warmup_steps,
+                                               'calibrate_base_lr': False}}
 
         self.base_model_config = ModelConfig(config_dict)
         self.ipllr = FcIPLLR(self.base_model_config, n_warmup_steps=4)
@@ -364,9 +365,10 @@ class TestFcIPLLR(unittest.TestCase):
         ntk.optimizer.zero_grad()
 
         # outputs at initialization
-        x_1_ipllr = ipllr.activation((ipllr.width ** (-ipllr.a[0])) * ipllr.input_layer.forward(x))
-        x_1_muP = muP.activation((muP.width ** (-muP.a[0])) * muP.input_layer.forward(x))
-        x_1_ntk = ntk.activation((ntk.width ** (-ntk.a[0])) * ntk.input_layer.forward(x))
+        x_1_ipllr = ipllr.activation((ipllr.width ** (-ipllr.a[0])) * ipllr.input_layer.forward(x) /
+                                     math.sqrt(ipllr.d + 1))
+        x_1_muP = muP.activation((muP.width ** (-muP.a[0])) * muP.input_layer.forward(x) / math.sqrt(muP.d + 1))
+        x_1_ntk = ntk.activation((ntk.width ** (-ntk.a[0])) * ntk.input_layer.forward(x) / math.sqrt(ntk.d + 1))
 
         with torch.no_grad():
             torch.testing.assert_allclose(x_1_ipllr, x_1_ntk, rtol=1e-6, atol=1e-6)
@@ -778,9 +780,10 @@ class TestFcIPLLR(unittest.TestCase):
 
                 # input layer
                 Delta_w = model.input_layer.weight.data - model_init.input_layer.weight.data
-                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x)
-                update_contrib = model.layer_scales[0] * x.matmul(Delta_w.t())
-                total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
+                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x) / \
+                               math.sqrt(model_init.d + 1)
+                update_contrib = model.layer_scales[0] * x.matmul(Delta_w.t()) / math.sqrt(model.d + 1)
+                total_contrib = model.layer_scales[0] * model.input_layer.forward(x) / math.sqrt(model.d + 1)
 
                 torch.testing.assert_allclose(init_contrib + update_contrib, total_contrib,
                                               rtol=1e-3, atol=1e-3)

@@ -159,9 +159,10 @@ class TestCalibrateBaseLR(unittest.TestCase):
                 Delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
                                                             model_init.input_layer.bias.data)
 
-                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x)
-                update_contrib = F.linear(x, Delta_W, Delta_b)
-                total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
+                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x) / \
+                               math.sqrt(model_init.d + 1)
+                update_contrib = F.linear(x, Delta_W, Delta_b) / math.sqrt(model.d + 1)
+                total_contrib = model.layer_scales[0] * model.input_layer.forward(x) / math.sqrt(model.d + 1)
 
                 torch.testing.assert_allclose(init_contrib + update_contrib, total_contrib,
                                               rtol=1e-3, atol=1e-3)
@@ -416,11 +417,11 @@ class TestCalibrateBaseLR(unittest.TestCase):
                         print('\n\n')
 
     def test_scales_with_previous_multiple_steps_muP(self):
-        n_steps = 200
+        n_steps = 150
         widths = [1024]
         Ls = [6]
         n_batches = 10
-        base_lrs = [0.01]
+        base_lrs = [0.001, 0.01]
         batch_size = 512
         config = deepcopy(self.base_model_config)
 
@@ -460,7 +461,7 @@ class TestCalibrateBaseLR(unittest.TestCase):
                     for step in range(n_steps):
                         print('##### step {} ####'.format(step))
                         # first train the models for one step
-                        x, y = batches[step]
+                        x, y = batches[step % len(batches)]
 
                         # copy models at current step
                         muP_previous = deepcopy(muP)
@@ -528,13 +529,14 @@ class TestCalibrateBaseLR(unittest.TestCase):
                 delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
                                                             model_previous.input_layer.bias.data)
 
-                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x)
-                previous_h = model.layer_scales[0] * model_previous.input_layer.forward(x)
+                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x) / \
+                               math.sqrt(model_init.d + 1)
+                previous_h = model.layer_scales[0] * model_previous.input_layer.forward(x) / math.sqrt(model.d + 1)
 
-                previous_Delta_h = F.linear(x, previous_Delta_W, previous_Delta_b)
-                Delta_h = F.linear(x, Delta_W, Delta_b)
-                delta_h = F.linear(x, delta_W, delta_b)
-                total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
+                previous_Delta_h = F.linear(x, previous_Delta_W, previous_Delta_b) / math.sqrt(model_previous.d + 1)
+                Delta_h = F.linear(x, Delta_W, Delta_b) / math.sqrt(model.d + 1)
+                delta_h = F.linear(x, delta_W, delta_b) / math.sqrt(model.d + 1)
+                total_contrib = model.layer_scales[0] * model.input_layer.forward(x) / math.sqrt(model.d + 1)
 
                 torch.testing.assert_allclose(init_contrib + Delta_h, total_contrib,
                                               rtol=1e-3, atol=1e-3)
