@@ -10,7 +10,7 @@ import seaborn as sns
 sns.set_style('darkgrid')
 
 
-def plot_losses(data_ip, data_muP, key, L, width, lr, batch_size, mode, marker='o'):
+def plot_losses(data_ip, data_muP, key, L, width, lr, batch_size, mode, marker='o', normalize_first=True):
     data_df_ip = pd.DataFrame(columns=['step', key], dtype=float)
     idx = 0
     for data_ip_ in data_ip:
@@ -26,7 +26,9 @@ def plot_losses(data_ip, data_muP, key, L, width, lr, batch_size, mode, marker='
                 data_df_muP.loc[idx, ['step', key]] = [i + 1, loss]
                 idx += 1
 
-    plt.title('{} {} vs steps, L={}, m={}, lr={}, batchsize={}'.format(mode, key, L, width, lr, batch_size))
+    plt.title('{} {} vs steps, L={}, m={}, lr={}, batchsize={}, renorm 1st layer={}'.format(mode, key, L, width, lr,
+                                                                                            batch_size,
+                                                                                            normalize_first))
     sns.lineplot(data=data_df_ip, x='step', y=key, marker=marker, label='IPLLR')
     if data_muP is not None:
         sns.lineplot(data=data_df_muP, x='step', y=key, marker=marker, label='muP')

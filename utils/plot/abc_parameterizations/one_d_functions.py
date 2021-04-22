@@ -46,9 +46,9 @@ def plot_model_vs_other(model1, model2, xs, ys, num=100, figsize=(12, 6), c='k')
     plt.scatter(xs, ys, marker='o', c=c, label='training points')
 
 
-def plot_model(model, xs, ys, label, x=None,  num=100, c='k', scatter=False):
+def plot_model(model, xs, ys, label, x=None,  num=100, c='k', scatter=False, x_max=1.0):
     if x is None:
-        x = np.linspace(start=-1.0, stop=1.0, num=num)
+        x = np.linspace(start=-x_max, stop=x_max, num=num)
     if scatter:
         plt.scatter(xs, ys, marker='o', c=c, label='training points')
 

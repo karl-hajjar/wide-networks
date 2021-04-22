@@ -98,7 +98,7 @@ class TestCalibrateBaseLR(unittest.TestCase):
                     print(ipllr_calib_contribs.groupby(by='layer')[['init', 'update', 'total']].mean())
                     print('\n\n')
 
-    def _train_models_one_step(self, model1, model2, x, y):
+    def _train_models_one_step(self, model1, model2, x, y, renorm_first=True):
         model1.train()
         model2.train()
 
@@ -107,11 +107,11 @@ class TestCalibrateBaseLR(unittest.TestCase):
         model2.optimizer.zero_grad()
 
         # outputs at initialization
-        y_hat_1 = model1.forward(x)
+        y_hat_1 = model1.forward(x, normalize_first=renorm_first)
         y_hat_1.retain_grad()
         loss_1 = model1.loss(y_hat_1, y)
 
-        y_hat_2 = model2.forward(x)
+        y_hat_2 = model2.forward(x, normalize_first=renorm_first)
         y_hat_2.retain_grad()
         loss_2 = model2.loss(y_hat_2, y)
 
@@ -135,7 +135,7 @@ class TestCalibrateBaseLR(unittest.TestCase):
         model2.scheduler.step()
 
     @staticmethod
-    def _compute_contributions(model_name, model, model_init, batches):
+    def _compute_contributions(model_name, model, model_init, batches, renorm_first=True):
         model.eval()
         model_init.eval()
 
@@ -159,10 +159,14 @@ class TestCalibrateBaseLR(unittest.TestCase):
                 Delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
                                                             model_init.input_layer.bias.data)
 
-                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x) / \
-                               math.sqrt(model_init.d + 1)
-                update_contrib = F.linear(x, Delta_W, Delta_b) / math.sqrt(model.d + 1)
-                total_contrib = model.layer_scales[0] * model.input_layer.forward(x) / math.sqrt(model.d + 1)
+                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x)
+                update_contrib = F.linear(x, Delta_W, Delta_b)
+                total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
+
+                if renorm_first:
+                    init_contrib = init_contrib / math.sqrt(model_init.d + 1)
+                    update_contrib = update_contrib / math.sqrt(model_init.d + 1)
+                    total_contrib = total_contrib / math.sqrt(model_init.d + 1)
 
                 torch.testing.assert_allclose(init_contrib + update_contrib, total_contrib,
                                               rtol=1e-3, atol=1e-3)
@@ -491,8 +495,86 @@ class TestCalibrateBaseLR(unittest.TestCase):
                                                                         'delta_h', 'Delta_h',  'total']].mean())
                         print('\n\n')
 
+    def test_scales_with_previous_multiple_steps_muP_without_renorm(self):
+        n_steps = 150
+        widths = [1024]
+        Ls = [6]
+        n_batches = 10
+        base_lrs = [0.1, 0.01]
+        batch_size = 512
+        config = deepcopy(self.base_model_config)
+
+        batches = list(DataLoader(self.training_dataset, shuffle=True, batch_size=batch_size))
+        print('len(batches) :', len(batches))
+
+        for L in Ls:
+            config.architecture['n_layers'] = L + 1
+            for width in widths:
+                config.architecture['width'] = width
+
+                config.scheduler = None
+                base_muP = FCmuP(config)
+
+                for base_lr in base_lrs:
+                    config.optimizer.params['lr'] = base_lr
+
+                    config.scheduler = None
+                    muP = FCmuP(config)
+
+                    scheduler_config = {'calibrate_base_lr': True, 'default_calibration': False}
+                    config.scheduler = BaseConfig(scheduler_config)
+                    # config.scheduler.params['calibrate_base_lr'] = True
+                    # config.scheduler.params['default_calibration'] = False
+                    ipllr_calib = FcIPLLR(config, n_warmup_steps=12, lr_calibration_batches=batches)
+
+                    # set init from same model
+                    muP.copy_initial_params_from_model(base_muP)
+                    muP.initialize_params()
+
+                    ipllr_calib.copy_initial_params_from_model(muP)
+                    ipllr_calib.initialize_params()
+
+                    muP_init = deepcopy(muP)
+                    ipllr_calib_init = deepcopy(ipllr_calib)
+
+                    for step in range(n_steps):
+                        print('##### step {} ####'.format(step))
+                        # first train the models for one step
+                        x, y = batches[step % len(batches)]
+
+                        # copy models at current step
+                        muP_previous = deepcopy(muP)
+                        ipllr_calib_previous = deepcopy(ipllr_calib)
+
+                        # train for oone step
+                        self._train_models_one_step(muP, ipllr_calib, x, y, renorm_first=False)
+
+                        # batch_nb = 1 + step * n_batches % len(batches)
+                        # print('batch_nb:', batch_nb)
+                        next_batch = batches[(step + 1) % len(batches)]
+                        # print('len(reduced_batches) at step {} : {}'.format(step, len(reduced_batches)))
+
+                        print('---- For L = {:,} and base_lr = {} ----'.format(L, base_lr))
+                        muP_contribs = \
+                            self._compute_contributions_with_previous('muP', muP, muP_init, muP_previous, [next_batch],
+                                                                      renorm_first=False)
+                        print('muP contributions per layer : ')
+                        print(muP_contribs.groupby(by='layer')[['init', 'previous_h', 'previous_Delta_h', 'delta_h', 'Delta_h',
+                                                                'total']].mean())
+                        print('')
+
+                        ipllr_calib_contribs = \
+                            self._compute_contributions_with_previous('ipllr_calib', ipllr_calib, ipllr_calib_init,
+                                                                      ipllr_calib_previous, [next_batch],
+                                                                      renorm_first=False)
+
+                        print('calibrated ipllr contributions per layer : ')
+                        print(ipllr_calib_contribs.groupby(by='layer')[['init', 'previous_h', 'previous_Delta_h',
+                                                                        'delta_h', 'Delta_h',  'total']].mean())
+                        print('\n\n')
+
     @staticmethod
-    def _compute_contributions_with_previous(model_name, model, model_init, model_previous, batches):
+    def _compute_contributions_with_previous(model_name, model, model_init, model_previous, batches, renorm_first=True):
         model.eval()
         model_init.eval()
         model_previous.eval()
@@ -529,17 +611,25 @@ class TestCalibrateBaseLR(unittest.TestCase):
                 delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
                                                             model_previous.input_layer.bias.data)
 
-                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x) / \
-                               math.sqrt(model_init.d + 1)
-                previous_h = model.layer_scales[0] * model_previous.input_layer.forward(x) / math.sqrt(model.d + 1)
+                init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x)
+                previous_h = model.layer_scales[0] * model_previous.input_layer.forward(x)
 
-                previous_Delta_h = F.linear(x, previous_Delta_W, previous_Delta_b) / math.sqrt(model_previous.d + 1)
-                Delta_h = F.linear(x, Delta_W, Delta_b) / math.sqrt(model.d + 1)
-                delta_h = F.linear(x, delta_W, delta_b) / math.sqrt(model.d + 1)
-                total_contrib = model.layer_scales[0] * model.input_layer.forward(x) / math.sqrt(model.d + 1)
+                previous_Delta_h = F.linear(x, previous_Delta_W, previous_Delta_b)
+                Delta_h = F.linear(x, Delta_W, Delta_b)
+                delta_h = F.linear(x, delta_W, delta_b)
+                total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
+
+                if renorm_first:
+                    init_contrib = init_contrib / math.sqrt(model_init.d + 1)
+                    previous_h = previous_h / math.sqrt(model_init.d + 1)
+                    previous_Delta_h = previous_Delta_h / math.sqrt(model_init.d + 1)
+                    Delta_h = Delta_h / math.sqrt(model_init.d + 1)
+                    delta_h = delta_h / math.sqrt(model_init.d + 1)
+                    total_contrib = total_contrib / math.sqrt(model_init.d + 1)
+
 
                 torch.testing.assert_allclose(init_contrib + Delta_h, total_contrib,
-                                              rtol=1e-3, atol=1e-3)
+                                              rtol=1e-2, atol=1e-2)
 
                 # contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
                 #     [model_name, 1, init_contrib.mean().item(), update_contrib.mean().item(),
@@ -574,7 +664,7 @@ class TestCalibrateBaseLR(unittest.TestCase):
                     total_contrib = model.layer_scales[l - 1] * layer.forward(x)
 
                     torch.testing.assert_allclose(init_contrib + Delta_h, total_contrib,
-                                                  rtol=1e-2, atol=1e-2)
+                                                  rtol=1e-1, atol=1e-1)
 
                     # contributions_df.loc[idx, ['model', 'layer', 'init', 'update', 'total', 'id']] = \
                     #     [model_name, l, init_contrib.mean().item(), update_contrib.mean().item(),
@@ -618,7 +708,7 @@ class TestCalibrateBaseLR(unittest.TestCase):
                 idx += 1
 
                 y_hat_debug = total_contrib
-                y_hat = model.forward(x_0)
+                y_hat = model.forward(x_0, normalize_first=renorm_first)
 
                 torch.testing.assert_allclose(y_hat_debug, y_hat, rtol=1e-5, atol=1e-5)
 

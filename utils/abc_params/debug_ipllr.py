@@ -17,7 +17,7 @@ from pytorch.models.abc_params.fully_connected.standard_fc_ip import StandardFCI
 from utils.data.mnist import load_data
 
 
-def train_model_one_step(model, x, y, verbose=True):
+def train_model_one_step(model, x, y, normalize_first=True, verbose=True):
     model.train()
     batch_size = len(x)
 
@@ -25,7 +25,7 @@ def train_model_one_step(model, x, y, verbose=True):
     model.optimizer.zero_grad()
 
     # outputs at initialization
-    y_hat = model.forward(x)
+    y_hat = model.forward(x, normalize_first=normalize_first)
     y_hat.retain_grad()
     loss = model.loss(y_hat, y)
 
@@ -45,7 +45,7 @@ def train_model_one_step(model, x, y, verbose=True):
         model.scheduler.step()
 
 
-def train_model_one_step_with_loss(model, x, y, verbose=True):
+def train_model_one_step_with_loss(model, x, y, normalize_first=True, verbose=True):
     model.train()
     batch_size = len(x)
 
@@ -53,7 +53,7 @@ def train_model_one_step_with_loss(model, x, y, verbose=True):
     model.optimizer.zero_grad()
 
     # outputs at initialization
-    y_hat = model.forward(x)
+    y_hat = model.forward(x, normalize_first=normalize_first)
     y_hat.retain_grad()
     loss = model.loss(y_hat, y)
 
@@ -76,7 +76,7 @@ def train_model_one_step_with_loss(model, x, y, verbose=True):
     return loss.item(), chi
 
 
-def compute_contributions_with_previous(model, model_init, model_previous, batches, step):
+def compute_contributions_with_previous(model, model_init, model_previous, batches, step, normalize_first=True):
     model.eval()
     model_init.eval()
     model_previous.eval()
@@ -105,14 +105,19 @@ def compute_contributions_with_previous(model, model_init, model_previous, batch
             delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
                                                         model_previous.input_layer.bias.data)
 
-            init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x) / math.sqrt(model_init.d + 1)
+            init_contrib = model_init.layer_scales[0] * model_init.input_layer.forward(x)
+            Delta_h = F.linear(x, Delta_W, Delta_b)
+            delta_h = F.linear(x, delta_W, delta_b)
+            total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
 
-            Delta_h = F.linear(x, Delta_W, Delta_b) / math.sqrt(model.d + 1)
-            delta_h = F.linear(x, delta_W, delta_b) / math.sqrt(model.d + 1)
-            total_contrib = model.layer_scales[0] * model.input_layer.forward(x) / math.sqrt(model.d + 1)
+            if normalize_first:
+                init_contrib = init_contrib / math.sqrt(model_init.d + 1)
+                Delta_h = Delta_h / math.sqrt(model.d + 1)
+                delta_h = delta_h / math.sqrt(model.d + 1)
+                total_contrib = total_contrib / math.sqrt(model.d + 1)
 
             torch.testing.assert_allclose(init_contrib + Delta_h, total_contrib,
-                                          rtol=1e-3, atol=1e-3)
+                                          rtol=1e-3, atol=1e-0)
 
             contributions_df.loc[idx, ['layer', 'h_init', 'Delta_h', 'delta_h', 'h', 'step']] = \
                 [1, init_contrib.abs().mean().item(), Delta_h.abs().mean().item(),
@@ -170,7 +175,7 @@ def compute_contributions_with_previous(model, model_init, model_previous, batch
             idx += 1
 
             y_hat_debug = total_contrib
-            y_hat = model.forward(x_0)
+            y_hat = model.forward(x_0, normalize_first=normalize_first)
 
             torch.testing.assert_allclose(y_hat_debug, y_hat, rtol=1e-5, atol=1e-5)
 
@@ -179,7 +184,8 @@ def compute_contributions_with_previous(model, model_init, model_previous, batch
     return contributions_df
 
 
-def compute_contributions_with_step_1(model_name, model, model_0, model_1, model_previous, batches):
+def compute_contributions_with_step_1(model_name, model, model_0, model_1, model_previous, batches,
+                                      normalize_first=True):
     model.eval()
     model_0.eval()
     model_1.eval()
@@ -215,11 +221,18 @@ def compute_contributions_with_step_1(model_name, model, model_0, model_1, model
             delta_b = (model.width ** (-model.a[0])) * (model.input_layer.bias.data -
                                                         model_previous.input_layer.bias.data)
 
-            h_1 = model_1.layer_scales[0] * model_1.input_layer.forward(x) / math.sqrt(model_1.d + 1)
-            Delta_h_1 = F.linear(x, Delta_W_1, Delta_b_1) / math.sqrt(model_1.d + 1)
-            Delta_h = F.linear(x, Delta_W, Delta_b) / math.sqrt(model.d + 1)
-            delta_h = F.linear(x, delta_W, delta_b) / math.sqrt(model.d + 1)
-            total_contrib = model.layer_scales[0] * model.input_layer.forward(x) / math.sqrt(model.d + 1)
+            h_1 = model_1.layer_scales[0] * model_1.input_layer.forward(x)
+            Delta_h_1 = F.linear(x, Delta_W_1, Delta_b_1)
+            Delta_h = F.linear(x, Delta_W, Delta_b)
+            delta_h = F.linear(x, delta_W, delta_b)
+            total_contrib = model.layer_scales[0] * model.input_layer.forward(x)
+
+            if normalize_first:
+                h_1 = h_1 / math.sqrt(model_1.d + 1)
+                Delta_h_1 = Delta_h_1 / math.sqrt(model.d + 1)
+                Delta_h = Delta_h / math.sqrt(model.d + 1)
+                delta_h = delta_h / math.sqrt(model.d + 1)
+                total_contrib = total_contrib / math.sqrt(model.d + 1)
 
             contributions_df.loc[idx, ['model', 'layer', 'h_1', 'Delta_h_1', 'Delta_h', 'delta_h', 'h', 'id']] = \
                 [model_name, 1, h_1.abs().mean().item(), Delta_h_1.abs().mean().item(), Delta_h.abs().mean().item(),
@@ -275,7 +288,7 @@ def compute_contributions_with_step_1(model_name, model, model_0, model_1, model
             idx += 1
 
             y_hat_debug = total_contrib
-            y_hat = model.forward(x_0)
+            y_hat = model.forward(x_0, normalize_first=normalize_first)
 
             torch.testing.assert_allclose(y_hat_debug, y_hat, rtol=1e-5, atol=1e-5)
 
@@ -285,7 +298,7 @@ def compute_contributions_with_step_1(model_name, model, model_0, model_1, model
     return contributions_df
 
 
-def collect_scales(model, model_init, batches, eval_batch, n_steps, verbose=False):
+def collect_scales(model, model_init, batches, eval_batch, n_steps, normalize_first=True, verbose=False, eval=False):
     training_results = []
     eval_results = []
     training_losses = []
@@ -296,16 +309,21 @@ def collect_scales(model, model_init, batches, eval_batch, n_steps, verbose=Fals
 
         # compute contributions
         training_results.append(compute_contributions_with_previous(model, model_init, model_previous, [batch],
-                                                                    i + 1))  # training
+                                                                    i + 1, normalize_first=normalize_first))  # training
 
-        eval_results.append(compute_contributions_with_previous(model, model_init, model_previous, [eval_batch],
-                                                                i + 1))  # evaluation
+        if eval:  # evaluation
+            eval_results.append(compute_contributions_with_previous(model, model_init, model_previous, [eval_batch],
+                                                                    i + 1, normalize_first=normalize_first))
 
         # train model for one step
         x, y = batch
-        loss, chi = train_model_one_step_with_loss(model, x, y, verbose=verbose)
+        loss, chi = train_model_one_step_with_loss(model, x, y, normalize_first=normalize_first, verbose=verbose)
         training_losses.append(loss)
         training_chis.append(chi)
 
-    return training_losses, training_chis, pd.concat(training_results, axis=0, ignore_index=True), \
-           pd.concat(eval_results, axis=0, ignore_index=True)
+    if eval:
+        eval_results = pd.concat(eval_results, axis=0, ignore_index=True)
+    else:
+        eval_results = []
+
+    return training_losses, training_chis, pd.concat(training_results, axis=0, ignore_index=True), eval_results
