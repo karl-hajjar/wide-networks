@@ -10,7 +10,7 @@ import click
               help='word')
 def main(n=10, word="Karl"):
     print('parameters of the run : n={}, word={}'.format(n, word))
-    time.sleep(120)
+    time.sleep(40)
     for i in range(n):
         print('Hello #{} {}'.format(i+1, word))
         time.sleep(4)
