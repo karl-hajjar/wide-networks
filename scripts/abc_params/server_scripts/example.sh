@@ -3,7 +3,7 @@
 $ -pe make 4
 
 # Nom du calcul, répertoire de travail :
-#$ -N "Calcul essai"
+#$ -N "Calcul essai toy script"
 #$ -wd /workdir2/hajjar/projects/wide-networks
 
 # Optionnel, être notifié par email :
