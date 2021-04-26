@@ -5,12 +5,12 @@ fastapi
 pandas
 numpy
 dateparser
-datetime
 pyyaml
 scikit-learn
 matplotlib
 seaborn
-torch
+# torch
+pytorch
 pytorch-lightning==0.8.5
 tensorboard==2.2.2
 torchvision

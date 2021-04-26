@@ -52,12 +52,12 @@ def train_model_one_step_with_loss(model, x, y, normalize_first=True, verbose=Tr
     # set gradients to 0
     model.optimizer.zero_grad()
 
-    # outputs at initialization
+    # outputs
     y_hat = model.forward(x, normalize_first=normalize_first)
     y_hat.retain_grad()
     loss = model.loss(y_hat, y)
 
-    # gradients at initialization
+    # gradients
     loss.backward()
 
     if verbose:
@@ -327,3 +327,18 @@ def collect_scales(model, model_init, batches, eval_batch, n_steps, normalize_fi
         eval_results = []
 
     return training_losses, training_chis, pd.concat(training_results, axis=0, ignore_index=True), eval_results
+
+
+def collect_training_losses(model, batches, n_steps, normalize_first=True, verbose=False):
+    training_losses = []
+    training_chis = []
+    for i in range(n_steps):
+        batch = batches[i % n_steps]
+
+        # train model for one step
+        x, y = batch
+        loss, chi = train_model_one_step_with_loss(model, x, y, normalize_first=normalize_first, verbose=verbose)
+        training_losses.append(loss)
+        training_chis.append(chi)
+
+    return training_losses, training_chis

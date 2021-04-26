@@ -1,20 +1,16 @@
 #!/bin/bash
+
 # Définition de l'environnement parallèle (4 ici pour 4 coeurs) :
 #$ -pe make 4
 
-pwd
-
 # Nom du calcul, répertoire de travail :
-#$ -N "Calcul essai toy script"
+#$ -N "calcul_essai_toy_script"
 #$ -wd /workdir2/hajjar/projects/wide-networks
-
-pwd
 
 # Optionnel, être notifié par email :
 #$ -m abe
 #$ -M hajjarkarl@gmail.com
 
-# rm -f .output
 #$ -e error.txt
 #$ -o output.txt
 #$ -j y
@@ -22,9 +18,9 @@ pwd
 # n, x and comment arguments are given with qsub cmd:
 # qsub -v n=5,x=2.0,comment="Test script" script.sh
 
-ls
+module load anaconda/2020.07  # load anaconda module
 
-source env/bin/activate  # activate the virtual environment
+conda activate karl-wide  # activate the virtual environment
 
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 

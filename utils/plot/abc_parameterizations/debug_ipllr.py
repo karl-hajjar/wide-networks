@@ -25,10 +25,8 @@ def plot_losses(data_ip, data_muP, key, L, width, lr, batch_size, mode, marker='
             for i, loss in enumerate(losses_muP_):
                 data_df_muP.loc[idx, ['step', key]] = [i + 1, loss]
                 idx += 1
-
-    plt.title('{} {} vs steps, L={}, m={}, lr={}, batchsize={}, renorm 1st layer={}'.format(mode, key, L, width, lr,
-                                                                                            batch_size,
-                                                                                            normalize_first))
+    plt.title('{} {} vs steps, L={}, m={}, lr={}, batchsize={}, renorm 1st layer={}'.
+              format(mode, key, L, width, lr, batch_size, normalize_first))
     sns.lineplot(data=data_df_ip, x='step', y=key, marker=marker, label='IPLLR')
     if data_muP is not None:
         sns.lineplot(data=data_df_muP, x='step', y=key, marker=marker, label='muP')
@@ -50,3 +48,21 @@ def plot_output_scale(ip_dfs, muP_dfs, layer, key, L, width, lr, batch_size, mod
 
         if y_scale == 'log':
             g.set(yscale="log")
+
+
+def plot_losses_models(models, key, L, width, lr, batch_size, mode, name, marker='o', normalize_first=True,
+                       y_scale=None):
+    plt.title('{}s {} {} vs steps, L={}, m={}, lr={}, batchsize={}, renorm 1st layer={}'.
+              format(name, mode, key, L, width, lr, batch_size, normalize_first))
+
+    for model_name, model_res in models.items():
+        data_df = pd.DataFrame(columns=['step', key], dtype=float)
+        idx = 0
+        for data in model_res:
+            for i, loss in enumerate(data):
+                data_df.loc[idx, ['step', key]] = [i + 1, loss]
+                idx += 1
+        g = sns.lineplot(data=data_df, x='step', y=key, marker=marker, label=model_name)
+
+    if y_scale == 'log':
+        g.set(yscale="log")
