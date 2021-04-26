@@ -18,10 +18,18 @@
 # n, x and comment arguments are given with qsub cmd:
 # qsub -v n=5,x=2.0,comment="Test script" script.sh
 
+echo "Before module load conda"
+
 module load anaconda/2020.07  # load anaconda module
+
+echo "Before conda activate"
 
 conda activate karl-wide  # activate the virtual environment
 
+echo "After conda activate"
+
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
+
+echo "Before python script command"
 
 python3 scripts/server_scripts/toy_python_script.py --n=5 --word='Karl'
