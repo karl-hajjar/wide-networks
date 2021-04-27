@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Définition de l'environnement parallèle (4 ici pour 4 coeurs) :
-#$ -pe make 4
+#$ -pe make 8
 
 # Nom du calcul, répertoire de travail :
 #$ -N "calcul_essai_toy_script"
@@ -16,6 +16,7 @@
 #$ -j y
 
 #$-t 1-4:1
+#$-tc 10
 
 # n, x and comment arguments are given with qsub cmd:
 # qsub -v n=5,x=2.0,comment="Test script" script.sh
@@ -30,8 +31,8 @@ export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 # python3 scripts/server_scripts/toy_python_script.py --n=$n --word=$word
 # qsub -v n=4,word="Ja" scripts/server_scripts/example.sh  ## (no space between the arguments separated by comma)
 
-python3 scripts/server_scripts/toy_python_script.py --n=5 --word="Karl" > out_1.txt
-python3 scripts/server_scripts/toy_python_script.py --n=4 --word="Arlk" > out_2.txt
-python3 scripts/server_scripts/toy_python_script.py --n=3 --word="Rlka" > out_3.txt
-python3 scripts/server_scripts/toy_python_script.py --n=6 --word="Lkar" > out_4.txt
+python3 scripts/server_scripts/toy_python_script.py --n=5 --word="Karl" > out_p_1.txt
+python3 scripts/server_scripts/toy_python_script.py --n=4 --word="Arlk" > out_p_2.txt
+python3 scripts/server_scripts/toy_python_script.py --n=3 --word="Rlka" > out_p_3.txt
+python3 scripts/server_scripts/toy_python_script.py --n=6 --word="Lkar" > out_p_4.txt
 
