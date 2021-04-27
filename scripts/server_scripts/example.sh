@@ -12,7 +12,6 @@
 #$ -M hajjarkarl@gmail.com
 
 #$ -e error.txt
-#$ -o output.txt
 #$ -j y
 
 # n, x and comment arguments are given with qsub cmd:
@@ -24,4 +23,4 @@ source activate karl-wide  # activate the virtual environment
 
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 
-python3 scripts/server_scripts/toy_python_script.py --n=5 --word='Karl' > scritp_out.txt
+python3 scripts/server_scripts/toy_python_script.py --n=$n --word=$w > out.txt
