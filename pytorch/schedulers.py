@@ -123,10 +123,12 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             inv_scale = 1.0 / update_contrib.abs().mean()
 
             # base_lrs.append(inv_scale.item())
-            base_lrs.append(self.base_lr)
+            if normalize_first:
+                base_lrs.append(self.base_lr * (model_.d + 1))
+            else:
+                base_lrs.append(self.base_lr)
 
-            # x = model_.activation(init_contrib + inv_scale * update_contrib)  # should be Theta(1)
-            x = model_.activation(init_contrib + self.base_lr * update_contrib)  # should be Theta(1)
+            x = model_.activation(init_contrib + base_lrs[0] * update_contrib)  # should be Theta(1)
 
             # intermediate layer grads
             for l in range(2, model_.n_layers):
@@ -151,9 +153,10 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             init_contrib = initial_model.layer_scales[model_.n_layers - 1] * initial_model.output_layer.forward(x)
             update_contrib = F.linear(x, Delta_W)
 
-            # inv_scale = 1.0 / update_contrib.abs().mean()
+            inv_scale = 1.0 / update_contrib.abs().mean()
             # inv_scale = 0.1 / update_contrib.abs().mean()
-            inv_scale = 0.01 / update_contrib.abs().mean()
+            # inv_scale = 0.01 / update_contrib.abs().mean()
+
             base_lrs.append(inv_scale.item())
 
         print('initial base lr :', base_lrs)
