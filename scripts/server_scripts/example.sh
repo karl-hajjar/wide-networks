@@ -24,4 +24,9 @@ source activate karl-wide  # activate the virtual environment
 
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 
-python3 scripts/server_scripts/toy_python_script.py --n=$n --word=$word
+# how to use arguments with qsub
+# python3 scripts/server_scripts/toy_python_script.py --n=$n --word=$word
+# qsub -v n=4,word="Ja" scripts/server_scripts/example.sh  ## (no space between the arguments separated by comma)
+
+python3 scripts/server_scripts/toy_python_script.py --n=5 --word="Karl"
+
