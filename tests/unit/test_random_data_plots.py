@@ -1,6 +1,6 @@
 import unittest
 
-from utils.data.random import RandomData
+from utils.dataset.random import RandomData
 from utils.plot.data import *
 # export PYTHONPATH=$PYTHONPATH:'/Users/khajjar/Documents/projects/dl-frameworks-mnist/'
 

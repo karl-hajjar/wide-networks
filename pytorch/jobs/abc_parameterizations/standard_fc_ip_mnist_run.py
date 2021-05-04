@@ -4,7 +4,7 @@ import click
 from pytorch.job_runners.abc_parameterizations.abc_runner import ABCRunner
 from pytorch.models.abc_params.fully_connected.standard_fc_ip import StandardFCIP
 from utils.tools import read_yaml
-from utils.data.mnist import load_data
+from utils.dataset.mnist import load_data
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(FILE_DIR)))  # go back 3 times from this directory

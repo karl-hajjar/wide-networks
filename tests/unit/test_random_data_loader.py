@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import DataLoader, Subset
 import math
 
-from utils.data import random, dataset
+from utils.dataset import random, dataset
 
 
 BATCH_SIZE = 32

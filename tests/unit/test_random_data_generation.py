@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 
-from utils.data.random import RandomData
+from utils.dataset.random import RandomData
 
 PRECISION = 1.0e-6
 

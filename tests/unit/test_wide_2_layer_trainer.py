@@ -10,7 +10,7 @@ import pickle
 
 from pytorch.configs.model import ModelConfig
 from pytorch.models.wide_2_layer import TwoLayerNet
-from utils.data import random, dataset
+from utils.dataset import random, dataset
 
 RESOURCES_DIR = '../resources/'
 BATCH_SIZE = 64

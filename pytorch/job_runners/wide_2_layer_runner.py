@@ -10,7 +10,7 @@ from .job_runner import JobRunner
 from utils.tools import *
 from pytorch.configs.model import ModelConfig
 from pytorch.models.wide_2_layer import TwoLayerNet
-from utils.data import random, dataset
+from utils.dataset import random, dataset
 
 TRAIN_RATIO = 0.8
 MAX_EPOCHS = 10000

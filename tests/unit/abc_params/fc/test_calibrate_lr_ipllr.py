@@ -15,7 +15,7 @@ from pytorch.models.abc_params.fully_connected.ipllr import FcIPLLR
 from pytorch.models.abc_params.fully_connected.muP import FCmuP
 from pytorch.models.abc_params.fully_connected.ntk import FCNTK
 from pytorch.models.abc_params.fully_connected.standard_fc_ip import StandardFCIP
-from utils.data.mnist import load_data
+from utils.dataset.mnist import load_data
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 TESTS_DIR = os.path.dirname(os.path.dirname(os.path.dirname(FILE_DIR)))
