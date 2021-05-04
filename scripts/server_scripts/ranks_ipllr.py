@@ -11,6 +11,9 @@ import sympy
 
 
 def main():
+    print('ROOT :', ROOT)
+    print('CONFIG_PATH :', CONFIG_PATH)
+
     # constants
     SEED = 30
     L = 6
@@ -114,9 +117,6 @@ def main():
                                        ipllr_1.input_layer.bias.data.detach()) / math.sqrt(ipllr_1.d + 1)
 
     # Ranks
-    print('ROOT :', ROOT)
-    print('CONFIG_PATH :', CONFIG_PATH)
-
     print('computing sympy Matrix ...')
     M = sympy.Matrix(Delta_W_1[1].numpy().tolist())
 

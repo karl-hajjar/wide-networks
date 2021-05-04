@@ -19,6 +19,7 @@ def load_data(path=None, download=False, flatten=True):
     if flatten:
         transforms_.append(transforms.Lambda(lambda x: torch.flatten(x)))
     transform = transforms.Compose(transforms_)
+    print('path : ', path)
     train_dataset = MNIST(root=path, train=True, download=download, transform=transform)
     test_dataset = MNIST(root=path, train=False, download=download, transform=transform)
 
