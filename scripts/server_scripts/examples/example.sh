@@ -18,10 +18,15 @@
 # n, x and comment arguments are given with qsub cmd:
 # qsub -v n=5,x=2.0,comment="Test script" script.sh
 
+echo $PWD
+
+echo "Loading anaconda module"
 module load anaconda/2020.07  # load anaconda module
 
+echo "Activating virtualenv"
 source activate karl-wide  # activate the virtual environment
 
+echo "Exporting python path"
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 
 # how to use arguments with qsub
