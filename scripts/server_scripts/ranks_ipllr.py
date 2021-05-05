@@ -9,6 +9,7 @@ CONFIG_PATH = os.path.join(ROOT, 'pytorch/configs/abc_parameterizations', 'fc_ip
 from utils.tools import read_yaml, set_random_seeds
 from utils.abc_params.debug_ipllr import *
 import sympy
+from time import time
 
 
 def main():
@@ -122,7 +123,12 @@ def main():
     M = sympy.Matrix(Delta_W_1[1].numpy().tolist())
 
     print('Computing row echelon form ...')
+    start = time()
     row_echelon = M.rref()
+    end = time()
+
+    print('Time for computing row echelon form : {:.3f} minutes'.format((end - start) / 60))
+
     print(row_echelon)
     print(row_echelon[1])
     print(len(row_echelon[1]))

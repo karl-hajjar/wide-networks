@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Définition de l'environnement parallèle (4 ici pour 4 coeurs) :
-#$ -pe make 4
+#$ -pe make 16
 
 # Nom du calcul, répertoire de travail :
 #$ -N "example"
