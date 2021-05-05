@@ -181,7 +181,7 @@ class BaseABCParam(BaseModel):
     def _generate_standard_gaussians(self, std=math.sqrt(2.0)):
         """
         Generate Gaussian matrices U and vectors v without any scaling (i.e. the whose values do NOT depend on the width
-        of the network) with a given std, if those matrices and vectors are not already set.
+        of the network) with a given std, if those matrices and vectors are not already defined.
         :param std:
         :return:
         """

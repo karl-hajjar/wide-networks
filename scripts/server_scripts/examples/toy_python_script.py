@@ -1,3 +1,4 @@
+print('Top of the script')
 import time
 import click
 import torch
@@ -20,4 +21,5 @@ def main(n=10, word="Karl"):
 
 
 if __name__ == '__main__':
+    print('Before main')
     main()
