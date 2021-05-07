@@ -129,15 +129,16 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512):
         plt.figure(figsize=(12, 8))
         plot_losses_models(losses, key=key, L=L, width=width, lr=base_lr, batch_size=batch_size, mode=mode,
                            normalize_first=renorm_first, marker=None, name='IPLLR')
-        plt.savefig(
-           os.path.join(FIGURES_DIR, fig_name_template.format(mode, key, L, width, base_lr, batch_size, renorm_first,
-                                                              scale_first_lr)))
+
+        plt.savefig(os.path.join(FIGURES_DIR,
+                                 fig_name_template.format(mode, key, L, width, activation, base_lr, batch_size)))
 
         key = 'chi'
         plt.figure(figsize=(12, 8))
         plot_losses_models(chis, key=key, L=L, width=width, lr=base_lr, batch_size=batch_size, mode=mode, marker=None,
                            name='IPLLR')
-        plt.savefig(os.path.join(FIGURES_DIR, fig_name_template.format(mode, key, L, width, base_lr, batch_size)))
+        plt.savefig(os.path.join(FIGURES_DIR,
+                                 fig_name_template.format(mode, key, L, width, activation, base_lr, batch_size)))
 
     except Exception as e:
         logger.exception("Exception when running the script : {}".format(e))
