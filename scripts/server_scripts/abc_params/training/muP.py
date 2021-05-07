@@ -33,7 +33,7 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="
     config_path = os.path.join(CONFIG_PATH, 'fc_ipllr_{}.yaml'.format(dataset))
     figures_dir = os.path.join(FIGURES_DIR, dataset)
     create_dir(figures_dir)
-    log_path = os.path.join(figures_dir, 'log_ipllr_{}.txt'.format(activation))
+    log_path = os.path.join(figures_dir, 'log_muP_{}.txt'.format(activation))
     logger = set_up_logger(log_path)
 
     logger.info('Parameters of the run:')
