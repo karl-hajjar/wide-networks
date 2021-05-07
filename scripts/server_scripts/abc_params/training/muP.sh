@@ -26,5 +26,5 @@ echo "Exporting python path for library wide-networks ..."
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 
 echo "Launching python script ..."
-python3 scripts/server_scripts/abc_params/training/muP.py --activation=$activation --dataset=$dataset
+python3 scripts/server_scripts/abc_params/training/muP.py --activation=$activation --dataset=$dataset --n_steps=n_steps
 
