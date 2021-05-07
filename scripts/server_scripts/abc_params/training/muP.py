@@ -61,7 +61,7 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="
         if dataset == 'mnist':
             from utils.dataset.mnist import load_data
         elif dataset == 'cifar10':
-            from utils.dataset.mnist import load_data
+            from utils.dataset.cifar10 import load_data
         elif dataset == 'cifar100':
             # TODO : add cifar100 to utils.dataset
             config_dict['architecture']['output_size'] = 100
@@ -116,20 +116,21 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="
             chis[key] = [r[1] for r in res]
 
         # Plot losses and derivatives
-        logger.info('Plotting figures')
+        logger.info('Saving figures at {}'.format(figures_dir))
         key = 'loss'
         plt.figure(figsize=(12, 8))
         plot_losses_models(losses, key=key, L=L, width=width, activation=activation, lr=base_lr, batch_size=batch_size,
                            mode=mode, normalize_first=renorm_first, marker=None, name='muP')
 
-        plt.savefig(os.path.join(FIGURES_DIR,
+        plt.savefig(os.path.join(figures_dir,
                                  fig_name_template.format(mode, key, L, width, activation, base_lr, batch_size)))
+        plt.ylim(0, 2.5)
 
         key = 'chi'
         plt.figure(figsize=(12, 8))
         plot_losses_models(chis, key=key, L=L, width=width, activation=activation, lr=base_lr, batch_size=batch_size,
                            mode=mode, marker=None, name='muP')
-        plt.savefig(os.path.join(FIGURES_DIR,
+        plt.savefig(os.path.join(figures_dir,
                                  fig_name_template.format(mode, key, L, width, activation, base_lr, batch_size)))
 
     except Exception as e:
