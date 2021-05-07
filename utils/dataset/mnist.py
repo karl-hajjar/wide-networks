@@ -11,15 +11,10 @@ PATH = os.path.join(ROOT, 'data')  # MNIST() needs only the root directory where
 def load_data(path=None, download=False, flatten=True):
     if path is None:
         path = PATH
-    print('In load_data in mnistp.py')
-    print('FILE_DIR :', FILE_DIR)
-    print('ROOT :', ROOT)
-    print('PATH :', PATH)
     transforms_ = [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
     if flatten:
         transforms_.append(transforms.Lambda(lambda x: torch.flatten(x)))
     transform = transforms.Compose(transforms_)
-    print('path : ', path)
     train_dataset = MNIST(root=path, train=True, download=download, transform=transform)
     test_dataset = MNIST(root=path, train=False, download=download, transform=transform)
 

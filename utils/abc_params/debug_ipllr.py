@@ -305,7 +305,7 @@ def collect_scales(model, model_init, batches, eval_batch, n_steps, normalize_fi
     training_chis = []
     model_previous = deepcopy(model)  # copy previous parameters
     for i in range(n_steps):
-        batch = batches[i % n_steps]
+        batch = batches[i % len(batches)]
 
         # compute contributions
         training_results.append(compute_contributions_with_previous(model, model_init, model_previous, [batch],
@@ -333,7 +333,7 @@ def collect_training_losses(model, batches, n_steps, normalize_first=True, verbo
     training_losses = []
     training_chis = []
     for i in range(n_steps):
-        batch = batches[i % n_steps]
+        batch = batches[i % len(batches)]
 
         # train model for one step
         x, y = batch

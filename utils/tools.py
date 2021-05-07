@@ -6,7 +6,7 @@ import yaml
 import pickle
 
 
-def set_up_logger(path):
+def set_up_logger(path: str):
     # first remove handlers if there were some already defined
     logger = logging.getLogger()  # root logger
     for handler in logger.handlers:  # remove all old handlers
@@ -24,15 +24,6 @@ def set_up_logger(path):
     logger.setLevel(logging.INFO)
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
-
-    # # then define new logger
-    # logging.basicConfig(
-    #     level=logging.INFO,
-    #     format="%(asctime)s [%(levelname)-5.5s] -- %(module)s - %(funcName)s  %(message)s",
-    #     handlers=[
-    #         logging.FileHandler(path, mode='w'),
-    #         logging.StreamHandler()]
-    # )
 
     return logger
 

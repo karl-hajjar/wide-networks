@@ -3,7 +3,8 @@ import torch
 ACTIVATION_DICT = {'relu': torch.nn.ReLU,
                    'elu': torch.nn.ELU,
                    'gelu': torch.nn.GELU,
-                   # 'tanh': torch.nn.modules.activation.Tanh,
+                   'sigmoid': torch.nn.modules.activation.Sigmoid,
+                   'tanh': torch.nn.modules.activation.Tanh,
                    'identity': torch.nn.Identity}
 DEFAULT_ACTIVATION = "relu"
 
