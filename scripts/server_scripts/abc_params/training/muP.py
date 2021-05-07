@@ -28,7 +28,9 @@ scale_first_lr = False
               help='Which learning rate to use')
 @click.option('--batch_size', '-bs', required=False, type=click.INT, default=512,
               help='What batch size to use')
-def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512):
+@click.option('--dataset', '-ds', required=False, type=click.STRING, default="mnist",
+              help='Which dataset to train on')
+def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="mnist"):
     create_dir(FIGURES_DIR)
     logger = set_up_logger(LOG_PATH.format(activation))
     logger.info('Parameters of the run:')
@@ -54,10 +56,22 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512):
 
         # Load data & define models
         logger.info('Loading data ...')
+        if dataset == 'mnist':
+            from utils.dataset.mnist import load_data
+        elif dataset == 'cifar10':
+            from utils.dataset.mnist import load_data
+        elif dataset == 'cifar100':
+            # TODO : add cifar100 to utils.dataset
+            config_dict['architecture']['output_size'] = 100
+            pass
+        else:
+            error = ValueError("dataset must be one of ['mnist', 'cifar10', 'cifar100'] but was {}".format(dataset))
+            logger.error(error)
+            raise error
+
         training_dataset, test_dataset = load_data(download=False, flatten=True)
         train_data_loader = DataLoader(training_dataset, shuffle=True, batch_size=batch_size)
         batches = list(train_data_loader)
-
 
         logger.info('Defining models')
         base_model_config.scheduler = None
@@ -70,7 +84,7 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512):
                 if i == 0:
                     param_group['lr'] = param_group['lr'] * (muP.d + 1)
 
-        logger.info('Copying parameters of base ipllr')
+        logger.info('Copying parameters of base muP')
         for i in range(N_TRIALS):
             muPs_renorm[i].copy_initial_params_from_model(muPs[i])
             muPs_renorm_scale_lr[i].copy_initial_params_from_model(muPs[i])
@@ -103,16 +117,16 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512):
         logger.info('Plotting figures')
         key = 'loss'
         plt.figure(figsize=(12, 8))
-        plot_losses_models(losses, key=key, L=L, width=width, lr=base_lr, batch_size=batch_size, mode=mode,
-                           normalize_first=renorm_first, marker=None, name='muP')
+        plot_losses_models(losses, key=key, L=L, width=width, activation=activation, lr=base_lr, batch_size=batch_size,
+                           mode=mode, normalize_first=renorm_first, marker=None, name='muP')
 
         plt.savefig(os.path.join(FIGURES_DIR,
                                  fig_name_template.format(mode, key, L, width, activation, base_lr, batch_size)))
 
         key = 'chi'
         plt.figure(figsize=(12, 8))
-        plot_losses_models(chis, key=key, L=L, width=width, lr=base_lr, batch_size=batch_size, mode=mode, marker=None,
-                           name='muP')
+        plot_losses_models(chis, key=key, L=L, width=width, activation=activation, lr=base_lr, batch_size=batch_size,
+                           mode=mode, marker=None, name='muP')
         plt.savefig(os.path.join(FIGURES_DIR,
                                  fig_name_template.format(mode, key, L, width, activation, base_lr, batch_size)))
 

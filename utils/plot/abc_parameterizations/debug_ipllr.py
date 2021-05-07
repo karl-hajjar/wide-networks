@@ -50,10 +50,10 @@ def plot_output_scale(ip_dfs, muP_dfs, layer, key, L, width, lr, batch_size, mod
             g.set(yscale="log")
 
 
-def plot_losses_models(models, key, L, width, lr, batch_size, mode, name, marker='o', normalize_first=True,
+def plot_losses_models(models, key, L, width, activation, lr, batch_size, mode, name, marker='o', normalize_first=True,
                        y_scale=None):
-    plt.title('{}s {} {} vs steps, L={}, m={}, lr={}, batchsize={}, renorm 1st layer={}'.
-              format(name, mode, key, L, width, lr, batch_size, normalize_first))
+    plt.title('{}s {} {} vs steps, L={}, m={}, activation={}, lr={}, batchsize={}'.
+              format(name, mode, key, L, width, activation, lr, batch_size))
 
     for model_name, model_res in models.items():
         data_df = pd.DataFrame(columns=['step', key], dtype=float)
