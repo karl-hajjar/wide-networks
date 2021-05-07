@@ -5,9 +5,8 @@ from utils.abc_params.debug_ipllr import *
 from utils.plot.abc_parameterizations.debug_ipllr import *
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
-FIGURES_DIR = os.path.join(ROOT, 'figures/abc_parameterizations/training/mnist')
+FIGURES_DIR = os.path.join(ROOT, 'figures/abc_parameterizations/training/')
 CONFIG_PATH = os.path.join(ROOT, 'pytorch/configs/abc_parameterizations', 'fc_ipllr_mnist.yaml')
-LOG_PATH = os.path.join(FIGURES_DIR, 'log_ipllr_{}.txt')
 
 
 N_TRIALS = 5
@@ -31,8 +30,11 @@ scale_first_lr = False
 @click.option('--dataset', '-ds', required=False, type=click.STRING, default="mnist",
               help='Which dataset to train on')
 def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="mnist"):
-    create_dir(FIGURES_DIR)
-    logger = set_up_logger(LOG_PATH.format(activation))
+    figures_dir = os.path.join(FIGURES_DIR, dataset)
+    create_dir(figures_dir)
+    log_path = os.path.join(figures_dir, 'log_ipllr_{}.txt'.format(activation))
+    logger = set_up_logger(log_path)
+
     logger.info('Parameters of the run:')
     logger.info('activation = {}'.format(activation))
     logger.info('n_steps = {:,}'.format(n_steps))
