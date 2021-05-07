@@ -6,7 +6,7 @@ from utils.plot.abc_parameterizations.debug_ipllr import *
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 FIGURES_DIR = os.path.join(ROOT, 'figures/abc_parameterizations/training/')
-CONFIG_PATH = os.path.join(ROOT, 'pytorch/configs/abc_parameterizations', 'fc_ipllr_mnist.yaml')
+CONFIG_PATH = os.path.join(ROOT, 'pytorch/configs/abc_parameterizations')
 
 
 N_TRIALS = 5
@@ -30,6 +30,7 @@ scale_first_lr = False
 @click.option('--dataset', '-ds', required=False, type=click.STRING, default="mnist",
               help='Which dataset to train on')
 def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="mnist"):
+    config_path = os.path.join(CONFIG_PATH, 'fc_ipllr_{}.yaml'.format(dataset))
     figures_dir = os.path.join(FIGURES_DIR, dataset)
     create_dir(figures_dir)
     log_path = os.path.join(figures_dir, 'log_ipllr_{}.txt'.format(activation))
@@ -45,7 +46,7 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="
 
     try:
         set_random_seeds(SEED)  # set random seed for reproducibility
-        config_dict = read_yaml(CONFIG_PATH)
+        config_dict = read_yaml(config_path)
 
         fig_name_template = 'muP_{}_{}_L={}_m={}_act={}_lr={}_bs={}.png'
 
