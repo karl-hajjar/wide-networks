@@ -50,7 +50,7 @@ def get_standard_mf_lr_exponents(L: int):
     return c
 
 
-def squared_trace_rank(M: torch.Tensor) -> float:
+def squared_trace_rank(M: torch.Tensor, svd=True) -> float:
     """
     Returns a lower bound on the true rank of M as defined in Eq (4) of https://arxiv.org/pdf/2003.01652.pdf.
     Calling S = M.transpose() * M, the lower bound returned is Tr(S)^2 / Tr(M^2), also expressed as
@@ -58,12 +58,16 @@ def squared_trace_rank(M: torch.Tensor) -> float:
     :param M:
     :return:
     """
-    S = torch.matmul(M.transpose(0, 1), M)
-    eigenvalues, _ = torch.symeig(S, eigenvectors=False)
+    if svd:
+        _, s, _ = torch.svd(M, compute_uv=False)
+        eigenvalues = s ** 2
+    else:
+        S = torch.matmul(M.transpose(0, 1), M)
+        eigenvalues, _ = torch.symeig(S, eigenvectors=False)
     return (eigenvalues.sum().item() ** 2) / (eigenvalues ** 2).sum().item()
 
 
-def frob_spec_rank(M: torch.Tensor) -> float:
+def frob_spec_rank(M: torch.Tensor, svd=True) -> float:
     """
     Returns a lower bound on the true rank of M as defined in Th 1.1 of https://arxiv.org/pdf/math/0503442v3.pdf.
     The lower bound returned is ||M||_F^2 / ||M||_op^2 where the numerator is the squared Frobenius norm and the
@@ -74,6 +78,10 @@ def frob_spec_rank(M: torch.Tensor) -> float:
     :param M:
     :return:
     """
-    S = torch.matmul(M.transpose(0, 1), M)
-    eigenvalues, _ = torch.symeig(S, eigenvectors=False)
+    if svd:
+        _, s, _ = torch.svd(M, compute_uv=False)
+        eigenvalues = s ** 2
+    else:
+        S = torch.matmul(M.transpose(0, 1), M)
+        eigenvalues, _ = torch.symeig(S, eigenvectors=False)
     return eigenvalues.sum().item() / eigenvalues.max().item()

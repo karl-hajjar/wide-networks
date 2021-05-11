@@ -422,7 +422,7 @@ def get_contributions_1(x, model_1, W0, b0, Delta_W_1, Delta_b_1, normalize_firs
             h1[1] = h1[1] / math.sqrt(model_1.d + 1)
         x1[1] = model_1.activation(h1[1])
 
-        torch.testing.assert_allclose(h0[1] + delta_h_1[1], h1[1], rtol=1e-5, atol=1e-4)
+        torch.testing.assert_allclose(h0[1] + delta_h_1[1], h1[1], rtol=1e-4, atol=1e-4)
 
         for i, l in enumerate(range(2, L + 1)):
             layer_1 = getattr(model_1.intermediate_layers, intermediate_layer_keys[i])
@@ -434,7 +434,7 @@ def get_contributions_1(x, model_1, W0, b0, Delta_W_1, Delta_b_1, normalize_firs
             h1[l] = layer_scales[l - 1] * layer_1.forward(x)
             x1[l] = model_1.activation(h1[l])
 
-            torch.testing.assert_allclose(h0[l] + delta_h_1[l], h1[l], rtol=1e-5, atol=1e-5)
+            torch.testing.assert_allclose(h0[l] + delta_h_1[l], h1[l], rtol=1e-4, atol=1e-4)
 
         x = x1[L]
         h0[L + 1] = F.linear(x, W0[L + 1])
@@ -442,7 +442,7 @@ def get_contributions_1(x, model_1, W0, b0, Delta_W_1, Delta_b_1, normalize_firs
         h1[L + 1] = layer_scales[L] * model_1.output_layer.forward(x)
         x1[L + 1] = model_1.activation(h1[L + 1])
 
-        torch.testing.assert_allclose(h0[L + 1] + delta_h_1[L + 1], h1[L + 1], rtol=1e-5, atol=1e-5)
+        torch.testing.assert_allclose(h0[L + 1] + delta_h_1[L + 1], h1[L + 1], rtol=1e-4, atol=1e-4)
 
     return h0, delta_h_1, h1, x1
 
