@@ -77,8 +77,8 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="
         training_dataset, test_dataset = load_data(download=False, flatten=True)
         train_data_loader = DataLoader(training_dataset, shuffle=True, batch_size=batch_size)
         batches = list(train_data_loader)
-        logger.info('Number of batches (steps) = {:,} per epoch'.format(len(batches)))
-        logger.info('Number of epochs = {:,}'.format(n_steps // len(batches)))
+        logger.info('Number of batches (steps) per epoch : {:,}'.format(len(batches)))
+        logger.info('Number of epochs : {:,}'.format(n_steps // len(batches)))
 
         config_dict['scheduler']['params']['calibrate_base_lr'] = False
         config = ModelConfig(config_dict)

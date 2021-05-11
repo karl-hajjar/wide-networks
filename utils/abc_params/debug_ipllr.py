@@ -1,20 +1,11 @@
-import os
 from copy import deepcopy
 import torch
 import math
 import numpy as np
 import pandas as pd
-from torch.utils.data import Dataset, Subset, DataLoader
 import torch.nn.functional as F
 
-from utils.tools import read_yaml
-from pytorch.configs.base import BaseConfig
-from pytorch.configs.model import ModelConfig
-from pytorch.models.abc_params.fully_connected.ipllr import FcIPLLR
-from pytorch.models.abc_params.fully_connected.muP import FCmuP
-from pytorch.models.abc_params.fully_connected.ntk import FCNTK
-from pytorch.models.abc_params.fully_connected.standard_fc_ip import StandardFCIP
-from utils.dataset.mnist import load_data
+from utils.nn import squared_trace_rank, frob_spec_rank
 
 
 def train_model_one_step(model, x, y, normalize_first=True, verbose=True):
@@ -342,3 +333,259 @@ def collect_training_losses(model, batches, n_steps, normalize_first=True, verbo
         training_chis.append(chi)
 
     return training_losses, training_chis
+
+
+def get_W0_dict(model_0, normalize_first=True):
+    L = model_0.n_layers - 1
+    layer_scales = model_0.layer_scales
+    intermediate_layer_keys = ["layer_{:,}_intermediate".format(l) for l in range(2, L + 1)]
+    with torch.no_grad():
+        W0 = {1: layer_scales[0] * model_0.input_layer.weight.data.detach()}
+        for i, l in enumerate(range(2, L + 1)):
+            layer = getattr(model_0.intermediate_layers, intermediate_layer_keys[i])
+            W0[l] = layer_scales[l - 1] * layer.weight.data.detach()
+
+        W0[L + 1] = layer_scales[L] * model_0.output_layer.weight.data.detach()
+
+        b0 = layer_scales[0] * model_0.input_layer.bias.data.detach()
+
+        if normalize_first:
+            W0[1] = W0[1] / math.sqrt(model_0.d + 1)
+            b0 = b0 / math.sqrt(model_0.d + 1)
+
+    return W0, b0
+
+
+def get_Delta_W1_dict(model_0, model_1, normalize_first=True):
+    L = model_0.n_layers - 1
+    layer_scales = model_0.layer_scales
+    intermediate_layer_keys = ["layer_{:,}_intermediate".format(l) for l in range(2, L + 1)]
+    with torch.no_grad():
+        Delta_W_1 = {1: layer_scales[0] * (model_1.input_layer.weight.data.detach() - 
+                                           model_0.input_layer.weight.data.detach())}
+        for i, l in enumerate(range(2, L + 1)):
+            layer_1 = getattr(model_1.intermediate_layers, intermediate_layer_keys[i])
+            layer_0 = getattr(model_0.intermediate_layers, intermediate_layer_keys[i])
+            Delta_W_1[l] = layer_scales[l - 1] * (layer_1.weight.data.detach() -
+                                                  layer_0.weight.data.detach())
+
+        Delta_W_1[L + 1] = layer_scales[L] * (model_1.output_layer.weight.data.detach() -
+                                              model_0.output_layer.weight.data.detach())
+
+        Delta_b_1 = layer_scales[0] * (model_1.input_layer.bias.data.detach() - 
+                                       model_0.input_layer.bias.data.detach())
+
+    if normalize_first:
+        Delta_W_1[1] = Delta_W_1[1] / math.sqrt(model_1.d + 1)
+        Delta_b_1 = Delta_b_1 / math.sqrt(model_1.d + 1)
+    
+    return Delta_W_1, Delta_b_1
+
+
+def get_Delta_W2_dict(model_1, model_2, normalize_first=True):
+    L = model_1.n_layers - 1
+    layer_scales = model_1.layer_scales
+    intermediate_layer_keys = ["layer_{:,}_intermediate".format(l) for l in range(2, L + 1)]
+    with torch.no_grad():
+        Delta_W_2 = {1: layer_scales[0] * (model_2.input_layer.weight.data.detach() -
+                                           model_1.input_layer.weight.data.detach())}
+        for i, l in enumerate(range(2, L + 1)):
+            layer_2 = getattr(model_2.intermediate_layers, intermediate_layer_keys[i])
+            layer_1 = getattr(model_1.intermediate_layers, intermediate_layer_keys[i])
+            Delta_W_2[l] = layer_scales[l - 1] * (layer_2.weight.data.detach() -
+                                                  layer_1.weight.data.detach())
+
+        Delta_W_2[L + 1] = layer_scales[L] * (model_2.output_layer.weight.data.detach() -
+                                              model_1.output_layer.weight.data.detach())
+
+        Delta_b_2 = layer_scales[0] * (model_2.input_layer.bias.data.detach() -
+                                       model_1.input_layer.bias.data.detach())
+
+    if normalize_first:
+        Delta_W_2[1] = Delta_W_2[1] / math.sqrt(model_2.d + 1)
+        Delta_b_2 = Delta_b_2 / math.sqrt(model_2.d + 1)
+
+    return Delta_W_2, Delta_b_2
+
+
+def get_contributions_1(x, model_1, W0, b0, Delta_W_1, Delta_b_1, normalize_first=True):
+    L = model_1.n_layers - 1
+    layer_scales = model_1.layer_scales
+    intermediate_layer_keys = ["layer_{:,}_intermediate".format(l) for l in range(2, L + 1)]
+    
+    with torch.no_grad():
+        x1 = {0: x}
+        h0 = {1: F.linear(x, W0[1], b0)}
+        delta_h_1 = {1: F.linear(x, Delta_W_1[1], Delta_b_1)}
+        h1 = {1: layer_scales[0] * model_1.input_layer.forward(x)}
+        if normalize_first:
+            h1[1] = h1[1] / math.sqrt(model_1.d + 1)
+        x1[1] = model_1.activation(h1[1])
+
+        torch.testing.assert_allclose(h0[1] + delta_h_1[1], h1[1], rtol=1e-5, atol=1e-4)
+
+        for i, l in enumerate(range(2, L + 1)):
+            layer_1 = getattr(model_1.intermediate_layers, intermediate_layer_keys[i])
+            x = x1[l - 1]
+
+            h0[l] = F.linear(x, W0[l])
+            delta_h_1[l] = F.linear(x, Delta_W_1[l])
+
+            h1[l] = layer_scales[l - 1] * layer_1.forward(x)
+            x1[l] = model_1.activation(h1[l])
+
+            torch.testing.assert_allclose(h0[l] + delta_h_1[l], h1[l], rtol=1e-5, atol=1e-5)
+
+        x = x1[L]
+        h0[L + 1] = F.linear(x, W0[L + 1])
+        delta_h_1[L + 1] = F.linear(x, Delta_W_1[L + 1])
+        h1[L + 1] = layer_scales[L] * model_1.output_layer.forward(x)
+        x1[L + 1] = model_1.activation(h1[L + 1])
+
+        torch.testing.assert_allclose(h0[L + 1] + delta_h_1[L + 1], h1[L + 1], rtol=1e-5, atol=1e-5)
+
+    return h0, delta_h_1, h1, x1
+
+
+def get_svd_ranks_weights(W0, Delta_W_1, Delta_W_2, L, tol=None):
+    columns = ['layer', 'W0', 'Delta_W_1', 'Delta_W_2', 'max']
+    df = pd.DataFrame(columns=columns, index=range(1, L + 2))
+    df.index.name = 'layer'
+
+    with torch.no_grad():
+        for l in df.index:
+            if tol is None:
+                df.loc[l, columns] = [l,
+                                      torch.matrix_rank(W0[l]).item(),
+                                      torch.matrix_rank(Delta_W_1[l]).item(),
+                                      torch.matrix_rank(Delta_W_2[l]).item(),
+                                      min(W0[l].shape[0], W0[l].shape[1])]
+            else:
+                df.loc[l, columns] = [l,
+                                      torch.matrix_rank(W0[l], tol=tol).item(),
+                                      torch.matrix_rank(Delta_W_1[l], tol=tol).item(),
+                                      torch.matrix_rank(Delta_W_2[l], tol=tol).item(),
+                                      min(W0[l].shape[0], W0[l].shape[1])]
+
+    return df
+
+
+def get_square_trace_ranks_weights(W0, Delta_W_1, Delta_W_2, L):
+    columns = ['layer', 'W0', 'Delta_W_1', 'Delta_W_2', 'max']
+    df = pd.DataFrame(columns=columns, index=range(1, L + 2))
+    df.index.name = 'layer'
+
+    with torch.no_grad():
+        for l in df.index:
+            df.loc[l, columns] = [l,
+                                  squared_trace_rank(W0[l]),
+                                  squared_trace_rank(Delta_W_1[l]),
+                                  squared_trace_rank(Delta_W_2[l]),
+                                  min(W0[l].shape[0], W0[l].shape[1])]
+
+    return df
+
+
+def get_frob_spec_ranks_weights(W0, Delta_W_1, Delta_W_2, L):
+    columns = ['layer', 'W0', 'Delta_W_1', 'Delta_W_2', 'max']
+    df = pd.DataFrame(columns=columns, index=range(1, L + 2))
+    df.index.name = 'layer'
+
+    with torch.no_grad():
+        for l in df.index:
+            df.loc[l, columns] = [l,
+                                  frob_spec_rank(W0[l]),
+                                  frob_spec_rank(Delta_W_1[l]),
+                                  frob_spec_rank(Delta_W_2[l]),
+                                  min(W0[l].shape[0], W0[l].shape[1])]
+
+    return df
+
+
+def get_svd_ranks_acts(h0, delta_h_1, h1, x1, L, tol=None):
+    columns = ['layer', 'h0', 'delta_h_1', 'h1', 'x1', 'max']
+    df = pd.DataFrame(columns=columns, index=range(1, L + 2))
+    df.index.name = 'layer'
+
+    with torch.no_grad():
+        for l in df.index:
+            if tol is None:
+                df.loc[l, columns] = [l,
+                                      torch.matrix_rank(h0[l]).item(),
+                                      torch.matrix_rank(delta_h_1[l]).item(),
+                                      torch.matrix_rank(h1[l]).item(),
+                                      torch.matrix_rank(x1[l]).item(),
+                                      min(h0[l].shape[0], h0[l].shape[1])]
+            else:
+                df.loc[l, columns] = [l,
+                                      torch.matrix_rank(h0[l], tol=tol).item(),
+                                      torch.matrix_rank(delta_h_1[l], tol=tol).item(),
+                                      torch.matrix_rank(h1[l], tol=tol).item(),
+                                      torch.matrix_rank(x1[l], tol=tol).item(),
+                                      min(h0[l].shape[0], h0[l].shape[1])]
+
+    return df
+
+
+def get_square_trace_ranks_acts(h0, delta_h_1, h1, x1, L):
+    columns = ['layer', 'h0', 'delta_h_1', 'h1', 'x1', 'max']
+    df = pd.DataFrame(columns=columns, index=range(1, L + 2))
+    df.index.name = 'layer'
+
+    with torch.no_grad():
+        for l in df.index:
+            df.loc[l, columns] = [l,
+                                  squared_trace_rank(h0[l]),
+                                  squared_trace_rank(delta_h_1[l]),
+                                  squared_trace_rank(h1[l]),
+                                  squared_trace_rank(x1[l]),
+                                  min(h0[l].shape[0], h0[l].shape[1])]
+
+    return df
+
+
+def get_frob_spec_ranks_acts(h0, delta_h_1, h1, x1, L):
+    columns = ['layer', 'h0', 'delta_h_1', 'h1', 'x1', 'max']
+    df = pd.DataFrame(columns=columns, index=range(1, L + 2))
+    df.index.name = 'layer'
+
+    with torch.no_grad():
+        for l in df.index:
+            df.loc[l, columns] = [l,
+                                  frob_spec_rank(h0[l]),
+                                  frob_spec_rank(delta_h_1[l]),
+                                  frob_spec_rank(h1[l]),
+                                  frob_spec_rank(x1[l]),
+                                  min(h0[l].shape[0], h0[l].shape[1])]
+
+    return df
+
+
+def get_max_acts_diversity(h0, delta_h_1, h1, L):
+    columns = ['layer', 'h0', 'delta_h_1', 'h1', 'max']
+    df = pd.DataFrame(columns=columns, index=range(1, L + 2))
+    df.index.name = 'layer'
+
+    with torch.no_grad():
+        for l in df.index:
+            maxes = dict()
+
+            _, maxes['h0'] = torch.max(h0[l], dim=1)
+            _, maxes['delta_h_1'] = torch.max(delta_h_1[l], dim=1)
+            _, maxes['h1'] = torch.max(h1[l], dim=1)
+
+            df.loc[l, ['h0', 'delta_h_1', 'h1']] = [maxes[key].unique().numel() for key in ['h0', 'delta_h_1', 'h1']]
+            df.loc[l, 'layer'] = l
+            df.loc[l, 'max'] = h0[l].shape[0]
+
+    return df
+
+
+def get_concatenated_ranks_df(ranks_dfs: list) -> pd.DataFrame:
+    return pd.concat(ranks_dfs, axis=0, ignore_index=True)
+
+
+def get_avg_ranks_dfs(ranks_df: pd.DataFrame) -> pd.DataFrame:
+    avg_weight_ranks_df = ranks_df.astype(float).groupby(by='layer', as_index=True).mean()
+    avg_weight_ranks_df = avg_weight_ranks_df.astype(int)
+    return avg_weight_ranks_df

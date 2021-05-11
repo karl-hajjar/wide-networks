@@ -120,7 +120,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
                 init_contrib = init_contrib / math.sqrt(model_.d + 1)
                 update_contrib = update_contrib / math.sqrt(model_.d + 1)
 
-            inv_scale = 1.0 / update_contrib.abs().mean()
+            # inv_scale = 1.0 / update_contrib.abs().mean()
 
             # base_lrs.append(inv_scale.item())
             if normalize_first:
