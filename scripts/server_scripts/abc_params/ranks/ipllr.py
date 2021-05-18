@@ -139,7 +139,7 @@ def main(activation="relu", base_lr=0.01, batch_size=512, dataset="mnist"):
         Delta_W_2s = []
         Delta_b_2s = []
         for i in range(N_TRIALS):
-            Delta_W_2, Delta_b_2 = get_Delta_W1_dict(ipllrs_1[i], ipllrs_2[i], normalize_first=True)
+            Delta_W_2, Delta_b_2 = get_Delta_W2_dict(ipllrs_1[i], ipllrs_2[i], normalize_first=True)
             Delta_W_2s.append(Delta_W_2)
             Delta_b_2s.append(Delta_b_2)
 

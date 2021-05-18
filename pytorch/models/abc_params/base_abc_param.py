@@ -80,8 +80,16 @@ class BaseABCParam(BaseModel):
     def _set_bias(self, config):
         if ("bias" in config.keys()) and (config["bias"] is not None):
             self.bias = config["bias"]
+            if self.bias == True:
+                if ("scale_bias" in config.keys()) and (config["scale_bias"] is not None):
+                    self.scale_bias = config["scale_bias"]
+                else:
+                    self.scale_bias = False
+            else:
+                self.scale_bias = False
         else:
             self.bias = False
+            self.scale_bias = False
 
     def _set_init_std(self, config, activation=None):
         var = 2.0  # default value for the variance
@@ -170,13 +178,21 @@ class BaseABCParam(BaseModel):
 
             # biases
             if hasattr(self.input_layer, "bias"):
-                self.input_layer.bias.data.copy_(self.init_scales[0] * self.v[0].data)
+                if self.scale_bias:
+                    self.input_layer.bias.data.copy_(self.init_scales[0] * self.v[0].data)
+                else:
+                    self.input_layer.bias.data.copy_(self.v[0].data)
 
             if self.bias:
                 for l, layer in enumerate(self.intermediate_layers):
-                    layer.bias.data.copy_(self.init_scales[l+1] * self.v[l + 1].data)
-
-                self.output_layer.bias.copy_(self.init_scales[self.n_layers - 1] * self.v[self.n_layers-1].data)
+                    if self.scale_bias:
+                        layer.bias.data.copy_(self.init_scales[l+1] * self.v[l + 1].data)
+                    else:
+                        layer.bias.data.copy_(self.v[l + 1].data)
+                if self.scale_bias:
+                    self.output_layer.bias.copy_(self.init_scales[self.n_layers - 1] * self.v[self.n_layers-1].data)
+                else:
+                    self.output_layer.bias.copy_(self.v[self.n_layers-1].data)
 
     def _generate_standard_gaussians(self, std=math.sqrt(2.0)):
         """
