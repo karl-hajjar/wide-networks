@@ -33,7 +33,6 @@ class BaseIPLLR(BaseIP):
         c = [-(L+1) / 2] + [-(L+2) / 2 for _ in range(1, L)] + [-(L+1) / 2]
 
         self._set_n_warmup_steps(config.scheduler, n_warmup_steps)
-        self.n_warmup_steps = n_warmup_steps
         warm_lr_exponents = get_standard_mf_lr_exponents(L)
         self.width = config.architecture['width']
         self.warm_lrs = self._set_scales_from_exponents(warm_lr_exponents)
@@ -65,6 +64,9 @@ class BaseIPLLR(BaseIP):
                                                 **scheduler_config.params)
             except Exception as e:
                 raise Exception("Exception while trying to create the scheduler : {}".format(e))
+
+    # TODO : if bias is set to True, then the learning rates for the biases need to be set appropriately and differently
+    #  from the weights, ie for IP-LLR they need to scale as dh in m^{-1}m^{(L-l)/2}.
 
     def training_step(self, batch, batch_nb):
         out = super().training_step(batch, batch_nb)

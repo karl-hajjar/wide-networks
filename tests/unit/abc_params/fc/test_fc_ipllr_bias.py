@@ -126,6 +126,279 @@ class TestFcIPLLRBias(unittest.TestCase):
             self.plot_parameter_values_histogram(h, std,
                                                  'Distribution of pre-activation values at layer {:,}'.format(l+1))
 
+    def test_lrs(self):
+        model = deepcopy(self.ipllr_bias)
+        L = self.L
+        m = self.width
+
+        # initial model lrs
+        expected_lr_scales = [m ** ((L + 1) / 2)] + [m ** ((L - l + 4) / 2) for l in range(2, L+1)] + [m]
+        expected_bias_lr_scales = [1.0 for l in range(1, L+2)]
+        self.assertSequenceEqual(model.lr_scales, expected_lr_scales)
+        self.assertSequenceEqual(model.bias_lr_scales, expected_bias_lr_scales)
+
+        # warm model lrs
+        expected_warm_lr_scales = [m] + [m ** 2 for l in range(2, L+1)] + [m]
+        expected_bias_warm_lr_scales = [1.0 for l in range(1, L+2)]
+        self.assertSequenceEqual(model.warm_lrs, expected_warm_lr_scales)
+        self.assertSequenceEqual(model.warm_bias_lrs, expected_bias_warm_lr_scales)
+
+        # initial scheduler lrs
+        self.assertSequenceEqual(model.scheduler.initial_lrs, expected_lr_scales)
+        self.assertSequenceEqual(model.scheduler.current_bias_lrs, expected_bias_lr_scales)
+
+        # warm scheduler lrs
+        self.assertSequenceEqual(model.scheduler.warm_lrs, expected_warm_lr_scales)
+        self.assertSequenceEqual(model.scheduler.warm_bias_lrs, expected_bias_warm_lr_scales)
+
+    def test_lrs_scale_bias_lr(self):
+        config = deepcopy(self.base_model_config)
+        config.architecture["scale_bias_lr"] = True
+        model = FcIPLLRBias(config, n_warmup_steps=12)
+
+        L = self.L
+        m = self.width
+
+        # initial model lrs
+        expected_lr_scales = [m ** ((L + 1) / 2)] + [m ** ((L - l + 4) / 2) for l in range(2, L+1)] + [m]
+        expected_bias_lr_scales = [m ** ((L - l + 2) / 2) for l in range(1, L+1)] + [1.0]
+        self.assertSequenceEqual(model.lr_scales, expected_lr_scales)
+        self.assertSequenceEqual(model.bias_lr_scales, expected_bias_lr_scales)
+
+        # warm model lrs
+        expected_warm_lr_scales = [m] + [m ** 2 for l in range(2, L+1)] + [m]
+        expected_bias_warm_lr_scales = [m for l in range(1, L+1)] + [1.0]
+        self.assertSequenceEqual(model.warm_lrs, expected_warm_lr_scales)
+        self.assertSequenceEqual(model.warm_bias_lrs, expected_bias_warm_lr_scales)
+
+        # initial scheduler lrs
+        self.assertSequenceEqual(model.scheduler.initial_lrs, expected_lr_scales)
+        self.assertSequenceEqual(model.scheduler.current_bias_lrs, expected_bias_lr_scales)
+
+        # warm scheduler lrs
+        self.assertSequenceEqual(model.scheduler.warm_lrs, expected_warm_lr_scales)
+        self.assertSequenceEqual(model.scheduler.warm_bias_lrs, expected_bias_warm_lr_scales)
+
+    def test_lr_switch_scheduler(self):
+        n = 10
+        x = torch.rand((10, self.base_model_config.architecture["input_size"]), requires_grad=False)
+        y = torch.randint(low=0, high=self.base_model_config.architecture["output_size"], size=(n,),
+                          requires_grad=False)
+
+        model = deepcopy(self.ipllr_bias)
+        L = self.L
+        m = self.width
+
+        self.assertEqual(model.n_warmup_steps, 1)
+        self.assertEqual(model.scheduler.n_warmup_steps, 1)
+
+        # initial lrs
+        expected_lr_scales = [m ** ((L + 1) / 2)] + [m ** ((L - l + 4) / 2) for l in range(2, L+1)] + [m]
+        expected_bias_lr_scales = [1.0 for l in range(1, L+2)]
+
+        # warm lrs
+        expected_warm_lr_scales = [m] + [m ** 2 for l in range(2, L+1)] + [m]
+        expected_bias_warm_lr_scales = [1.0 for l in range(1, L+2)]
+
+        # check param groups initial lrs
+        for i, param in enumerate(model.optimizer.param_groups):
+            if 'weight' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_lr_scales[i])
+            elif 'bias' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_bias_lr_scales[i - (self.L + 1)])
+
+        # train for one step
+        model.train()
+
+        y_hat = model.forward(x)
+        loss = model.loss(y_hat, y)
+
+        loss.backward()
+        model.optimizer.step()
+        model.scheduler.step()
+        model.eval()
+
+        # check schedulers lrs (current, last) and param groups lrs
+        self.assertSequenceEqual(model.scheduler._last_lrs, expected_lr_scales)
+        self.assertSequenceEqual(model.scheduler._last_bias_lrs, expected_bias_lr_scales)
+
+        self.assertSequenceEqual(model.scheduler.current_lrs, expected_warm_lr_scales)
+        self.assertSequenceEqual(model.scheduler.current_bias_lrs, expected_bias_warm_lr_scales)
+
+        # check param groups initial lrs
+        for i, param in enumerate(model.optimizer.param_groups):
+            if 'weight' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_warm_lr_scales[i])
+            elif 'bias' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_bias_warm_lr_scales[i - (self.L + 1)])
+
+    def test_lr_switch_scheduler_scale_bias(self):
+        n = 10
+        x = torch.rand((10, self.base_model_config.architecture["input_size"]), requires_grad=False)
+        y = torch.randint(low=0, high=self.base_model_config.architecture["output_size"], size=(n,),
+                          requires_grad=False)
+
+        config = deepcopy(self.base_model_config)
+        config.architecture["scale_bias_lr"] = True
+        model = FcIPLLRBias(config, n_warmup_steps=12)
+
+        L = self.L
+        m = self.width
+
+        self.assertEqual(model.n_warmup_steps, 1)
+        self.assertEqual(model.scheduler.n_warmup_steps, 1)
+
+        # initial lrs
+        expected_lr_scales = [m ** ((L + 1) / 2)] + [m ** ((L - l + 4) / 2) for l in range(2, L+1)] + [m]
+        expected_bias_lr_scales = [m ** ((L - l + 2) / 2) for l in range(1, L+1)] + [1.0]
+
+        # warm lrs
+        expected_warm_lr_scales = [m] + [m ** 2 for l in range(2, L+1)] + [m]
+        expected_bias_warm_lr_scales = [m for l in range(1, L+1)] + [1.0]
+
+        # check param groups initial lrs
+        for i, param in enumerate(model.optimizer.param_groups):
+            if 'weight' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_lr_scales[i])
+            elif 'bias' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_bias_lr_scales[i - (self.L + 1)])
+
+        # train for one step
+        model.train()
+
+        y_hat = model.forward(x)
+        loss = model.loss(y_hat, y)
+
+        loss.backward()
+        model.optimizer.step()
+        model.scheduler.step()
+        model.eval()
+
+        # check schedulers lrs (current, last) and param groups lrs
+        self.assertSequenceEqual(model.scheduler._last_lrs, expected_lr_scales)
+        self.assertSequenceEqual(model.scheduler._last_bias_lrs, expected_bias_lr_scales)
+
+        self.assertSequenceEqual(model.scheduler.current_lrs, expected_warm_lr_scales)
+        self.assertSequenceEqual(model.scheduler.current_bias_lrs, expected_bias_warm_lr_scales)
+
+        # check param groups initial lrs
+        for i, param in enumerate(model.optimizer.param_groups):
+            if 'weight' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_warm_lr_scales[i])
+            elif 'bias' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_bias_warm_lr_scales[i - (self.L + 1)])
+
+    def test_calibrate_lr_switch_scheduler(self):
+        n = 10
+        x = torch.rand((10, self.base_model_config.architecture["input_size"]), requires_grad=False)
+        y = torch.randint(low=0, high=self.base_model_config.architecture["output_size"], size=(n,),
+                          requires_grad=False)
+
+        config = deepcopy(self.base_model_config)
+        config.scheduler.params = {'n_warmup_steps': self.n_warmup_steps,
+                                   'calibrate_base_lr': True,
+                                   'default_calibration': False}
+        model = FcIPLLRBias(config, n_warmup_steps=12, lr_calibration_batches=[(x, y), (x, y)])
+
+        L = self.L
+        m = self.width
+
+        self.assertEqual(model.n_warmup_steps, 1)
+        self.assertEqual(model.scheduler.n_warmup_steps, 1)
+
+        # initial lrs
+        expected_lr_scales = [m ** ((L + 1) / 2)] + [m ** ((L - l + 4) / 2) for l in range(2, L+1)] + [m]
+        expected_bias_lr_scales = [1.0 for l in range(1, L+2)]
+
+        # warm lrs
+        expected_warm_lr_scales = [m] + [m ** 2 for l in range(2, L+1)] + [m]
+        expected_bias_warm_lr_scales = [1.0 for l in range(1, L+2)]
+
+        # train for one step
+        model.train()
+
+        y_hat = model.forward(x)
+        loss = model.loss(y_hat, y)
+
+        loss.backward()
+        model.optimizer.step()
+        model.scheduler.step()
+        model.eval()
+
+        # check schedulers lrs (current, last) and param groups lrs
+        self.assertSequenceEqual(model.scheduler._last_lrs, expected_lr_scales)
+        self.assertSequenceEqual(model.scheduler._last_bias_lrs, expected_bias_lr_scales)
+
+        self.assertSequenceEqual(model.scheduler.current_lrs, expected_warm_lr_scales)
+        self.assertSequenceEqual(model.scheduler.current_bias_lrs, expected_bias_warm_lr_scales)
+
+        # check param groups initial lrs
+        for i, param in enumerate(model.optimizer.param_groups):
+            if 'weight' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_warm_lr_scales[i])
+            elif 'bias' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_bias_warm_lr_scales[i - (self.L + 1)])
+
+    def test_calibrate_lr_default_switch_scheduler(self):
+        n = 10
+        x = torch.rand((10, self.base_model_config.architecture["input_size"]), requires_grad=False)
+        y = torch.randint(low=0, high=self.base_model_config.architecture["output_size"], size=(n,),
+                          requires_grad=False)
+
+        config = deepcopy(self.base_model_config)
+        config.scheduler.params = {'n_warmup_steps': self.n_warmup_steps,
+                                   'calibrate_base_lr': True,
+                                   'default_calibration': True}
+        model = FcIPLLRBias(config, n_warmup_steps=12, lr_calibration_batches=[(x, y), (x, y)])
+
+        self.assertEqual(model.scheduler.initial_base_lrs, 1.0)
+
+        L = self.L
+        m = self.width
+
+        self.assertEqual(model.n_warmup_steps, 1)
+        self.assertEqual(model.scheduler.n_warmup_steps, 1)
+
+        # initial lrs
+        expected_lr_scales = [m ** ((L + 1) / 2)] + [m ** ((L - l + 4) / 2) for l in range(2, L+1)] + [m]
+        expected_bias_lr_scales = [1.0 for l in range(1, L+2)]
+
+        # warm lrs
+        expected_warm_lr_scales = [m] + [m ** 2 for l in range(2, L+1)] + [m]
+        expected_bias_warm_lr_scales = [1.0 for l in range(1, L+2)]
+
+        # check param groups initial lrs
+        for i, param in enumerate(model.optimizer.param_groups):
+            if 'weight' in param['name']:
+                self.assertEqual(param['lr'], expected_lr_scales[i])
+            elif 'bias' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_bias_lr_scales[i - (self.L + 1)])
+
+        # train for one step
+        model.train()
+
+        y_hat = model.forward(x)
+        loss = model.loss(y_hat, y)
+
+        loss.backward()
+        model.optimizer.step()
+        model.scheduler.step()
+        model.eval()
+
+        # check schedulers lrs (current, last) and param groups lrs
+        self.assertSequenceEqual(model.scheduler._last_lrs, expected_lr_scales)
+        self.assertSequenceEqual(model.scheduler._last_bias_lrs, expected_bias_lr_scales)
+
+        self.assertSequenceEqual(model.scheduler.current_lrs, expected_warm_lr_scales)
+        self.assertSequenceEqual(model.scheduler.current_bias_lrs, expected_bias_warm_lr_scales)
+
+        # check param groups initial lrs
+        for i, param in enumerate(model.optimizer.param_groups):
+            if 'weight' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_warm_lr_scales[i])
+            elif 'bias' in param['name']:
+                self.assertEqual(param['lr'], model.base_lr * expected_bias_warm_lr_scales[i - (self.L + 1)])
+
 
 if __name__ == '__main__':
     unittest.main()

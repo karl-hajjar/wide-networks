@@ -84,12 +84,12 @@ class BaseABCParam(BaseModel):
                 if ("scale_bias" in config.keys()) and (config["scale_bias"] is not None):
                     self.scale_bias = config["scale_bias"]
                 else:
-                    self.scale_bias = False
+                    self.scale_bias = True  # default is to scale bias same as the weights
             else:
-                self.scale_bias = False
+                self.scale_bias = True  # default is to scale bias same as the weights
         else:
             self.bias = False
-            self.scale_bias = False
+            self.scale_bias = True  # default is to scale bias same as the weights
 
     def _set_init_std(self, config, activation=None):
         var = 2.0  # default value for the variance

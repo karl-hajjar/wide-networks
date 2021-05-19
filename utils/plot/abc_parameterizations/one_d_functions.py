@@ -20,7 +20,7 @@ def generate_1d_data(n_samples: int = 10):
     return xs, ys
 
 
-def fit_model(model, x, y, n_epochs=1, init_bias=True):
+def fit_model(model, x, y, n_epochs=1, init_bias=True, verbose=False):
     if not init_bias:
         with torch.no_grad():
             model.input_layer.bias.data.fill_(0.)
@@ -30,6 +30,9 @@ def fit_model(model, x, y, n_epochs=1, init_bias=True):
         y_hat = model.forward(x)
         loss = model.loss(y_hat, y)
         loss.backward()
+
+        if verbose:
+            print('loss at step {:,} : {:.5f}'.format(i+1, loss.detach().item()))
 
         model.optimizer.step()
         if hasattr(model, 'scheduler') and (model.scheduler is not None):
