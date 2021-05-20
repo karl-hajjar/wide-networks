@@ -28,6 +28,7 @@ class BaseABCParam(BaseModel):
         self._set_n_layers(config.architecture)  # set n_layers L+1 and check that it is not None
         self._set_bias(config.architecture)  # defines self.bias based on the config
         self._set_init_std(config.initializer, config.activation.name)  # defines self.std based on the config
+        self._set_init_mean(config.initializer)  # defines self.init_mean based on the config
 
         self._check_scales(a, b, c)
 
@@ -105,6 +106,14 @@ class BaseABCParam(BaseModel):
 
         self.std = math.sqrt(var)
 
+    def _set_init_mean(self, config):
+        if ("mean" in config.params.keys()) and (config.params["mean"] is not None):
+            mean = config.params["mean"]
+        else:
+            mean = 0.0
+
+        self.init_mean = mean
+
     def _check_scales(self, a, b, c):
         if len(a) != self.n_layers:
             raise ValueError("Layer scales `a` had {:,} elements but n_layers is {:,}")
@@ -166,7 +175,7 @@ class BaseABCParam(BaseModel):
         :param init_config:
         :return:
         """
-        self._generate_standard_gaussians(self.std)
+        self._generate_standard_gaussians(mean=self.init_mean, std=self.std)
         with torch.no_grad():
             # weights
             self.input_layer.weight.data.copy_(self.init_scales[0] * self.U[0].data)
@@ -194,7 +203,7 @@ class BaseABCParam(BaseModel):
                 else:
                     self.output_layer.bias.copy_(self.v[self.n_layers-1].data)
 
-    def _generate_standard_gaussians(self, std=math.sqrt(2.0)):
+    def _generate_standard_gaussians(self, mean=0.0, std=math.sqrt(2.0)):
         """
         Generate Gaussian matrices U and vectors v without any scaling (i.e. the whose values do NOT depend on the width
         of the network) with a given std, if those matrices and vectors are not already defined.
@@ -203,9 +212,9 @@ class BaseABCParam(BaseModel):
         """
         if not hasattr(self, "U") or (self.U is None):
             self.U = [torch.normal(mean=0, std=std, size=self.input_layer.weight.size(), requires_grad=False)]
-            self.U += [torch.normal(mean=0, std=std, size=(self.width, self.width), requires_grad=False)
+            self.U += [torch.normal(mean=mean, std=std, size=(self.width, self.width), requires_grad=False)
                        for _ in self.intermediate_layers]
-            self.U.append(torch.normal(mean=0, std=1.0, size=self.output_layer.weight.size(), requires_grad=False))
+            self.U.append(torch.normal(mean=mean, std=1.0, size=self.output_layer.weight.size(), requires_grad=False))
 
         if not hasattr(self, "v") or (self.v is None):
             if hasattr(self.input_layer, "bias"):
