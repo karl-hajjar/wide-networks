@@ -123,7 +123,7 @@ class BaseIPLLRBias(BaseIP, BaseModel):
                 raise Exception("Exception while trying to create the scheduler : {}".format(e))
 
     def forward(self, x, normalize_first=True):
-        h = (self.width ** (-self.a[0])) * self.input_layer.forward(x)  # h_0 first layer pre-activations
+        h = self.input_layer.forward((self.width ** (-self.a[0])) * x)  # h_0 first layer pre-activations
         if normalize_first:
             h = h / math.sqrt(self.d + 1)
         x = self.activation(h)  # x_0, first layer activations

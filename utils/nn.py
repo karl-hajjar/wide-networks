@@ -50,7 +50,7 @@ def get_standard_mf_lr_exponents(L: int):
     return c
 
 
-def squared_trace_rank(M: torch.Tensor, svd=True) -> float:
+def squared_trace_rank(M: torch.Tensor, svd=True, eps=1e-9) -> float:
     """
     Returns a lower bound on the true rank of M as defined in Eq (4) of https://arxiv.org/pdf/2003.01652.pdf.
     Calling S = M.transpose() * M, the lower bound returned is Tr(S)^2 / Tr(M^2), also expressed as
@@ -64,7 +64,7 @@ def squared_trace_rank(M: torch.Tensor, svd=True) -> float:
     else:
         S = torch.matmul(M.transpose(0, 1), M)
         eigenvalues, _ = torch.symeig(S, eigenvectors=False)
-    return (eigenvalues.sum().item() ** 2) / (eigenvalues ** 2).sum().item()
+    return (eigenvalues.sum().item() ** 2) / ((eigenvalues ** 2).sum().item() + eps)
 
 
 def frob_spec_rank(M: torch.Tensor, svd=True) -> float:

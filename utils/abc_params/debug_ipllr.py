@@ -356,6 +356,28 @@ def get_W0_dict(model_0, normalize_first=True):
     return W0, b0
 
 
+def get_W0_b0_dict(model_0, normalize_first=True):
+    L = model_0.n_layers - 1
+    layer_scales = model_0.layer_scales
+    intermediate_layer_keys = ["layer_{:,}_intermediate".format(l) for l in range(2, L + 1)]
+    with torch.no_grad():
+        W0 = {1: layer_scales[0] * model_0.input_layer.weight.data.detach()}
+        b0 = {1: model_0.input_layer.bias.data.detach()}
+        for i, l in enumerate(range(2, L + 1)):
+            layer = getattr(model_0.intermediate_layers, intermediate_layer_keys[i])
+            W0[l] = layer_scales[l - 1] * layer.weight.data.detach()
+            b0[l] = layer.bias.data.detach()
+
+        W0[L + 1] = layer_scales[L] * model_0.output_layer.weight.data.detach()
+        b0[L + 1] = model_0.output_layer.bias.data.detach()
+
+        if normalize_first:
+            W0[1] = W0[1] / math.sqrt(model_0.d + 1)
+            b0[1] = b0[1] / math.sqrt(model_0.d + 1)
+
+    return W0, b0
+
+
 def get_Delta_W1_dict(model_0, model_1, normalize_first=True):
     L = model_0.n_layers - 1
     layer_scales = model_0.layer_scales
@@ -379,6 +401,33 @@ def get_Delta_W1_dict(model_0, model_1, normalize_first=True):
         Delta_W_1[1] = Delta_W_1[1] / math.sqrt(model_1.d + 1)
         Delta_b_1 = Delta_b_1 / math.sqrt(model_1.d + 1)
     
+    return Delta_W_1, Delta_b_1
+
+
+def get_Delta_W1_b1_dict(model_0, model_1, normalize_first=True):
+    L = model_0.n_layers - 1
+    layer_scales = model_0.layer_scales
+    intermediate_layer_keys = ["layer_{:,}_intermediate".format(l) for l in range(2, L + 1)]
+    with torch.no_grad():
+        Delta_W_1 = {1: layer_scales[0] * (model_1.input_layer.weight.data.detach() -
+                                           model_0.input_layer.weight.data.detach())}
+        Delta_b_1 = {1: model_1.input_layer.bias.data.detach() -
+                        model_0.input_layer.bias.data.detach()}
+        for i, l in enumerate(range(2, L + 1)):
+            layer_1 = getattr(model_1.intermediate_layers, intermediate_layer_keys[i])
+            layer_0 = getattr(model_0.intermediate_layers, intermediate_layer_keys[i])
+            Delta_W_1[l] = layer_scales[l - 1] * (layer_1.weight.data.detach() -
+                                                  layer_0.weight.data.detach())
+            Delta_b_1[l] = layer_1.bias.data.detach() - layer_0.bias.data.detach()
+
+        Delta_W_1[L + 1] = layer_scales[L] * (model_1.output_layer.weight.data.detach() -
+                                              model_0.output_layer.weight.data.detach())
+        Delta_b_1[L + 1] = model_1.output_layer.bias.data.detach() - model_0.output_layer.bias.data.detach()
+
+    if normalize_first:
+        Delta_W_1[1] = Delta_W_1[1] / math.sqrt(model_1.d + 1)
+        Delta_b_1[1] = Delta_b_1[1] / math.sqrt(model_1.d + 1)
+
     return Delta_W_1, Delta_b_1
 
 
@@ -408,10 +457,40 @@ def get_Delta_W2_dict(model_1, model_2, normalize_first=True):
     return Delta_W_2, Delta_b_2
 
 
+def get_Delta_W2_b2_dict(model_1, model_2, normalize_first=True):
+    L = model_1.n_layers - 1
+    layer_scales = model_1.layer_scales
+    intermediate_layer_keys = ["layer_{:,}_intermediate".format(l) for l in range(2, L + 1)]
+    with torch.no_grad():
+        Delta_W_2 = {1: layer_scales[0] * (model_2.input_layer.weight.data.detach() -
+                                           model_1.input_layer.weight.data.detach())}
+        Delta_b_2 = {1: model_2.input_layer.bias.data.detach() -
+                        model_1.input_layer.bias.data.detach()}
+        for i, l in enumerate(range(2, L + 1)):
+            layer_2 = getattr(model_2.intermediate_layers, intermediate_layer_keys[i])
+            layer_1 = getattr(model_1.intermediate_layers, intermediate_layer_keys[i])
+            Delta_W_2[l] = layer_scales[l - 1] * (layer_2.weight.data.detach() -
+                                                  layer_1.weight.data.detach())
+            Delta_b_2[l] = layer_2.bias.data.detach() - layer_1.bias.data.detach()
+
+        Delta_W_2[L + 1] = layer_scales[L] * (model_2.output_layer.weight.data.detach() -
+                                              model_1.output_layer.weight.data.detach())
+        Delta_b_2[L + 1] = model_2.output_layer.bias.data.detach() - model_1.output_layer.bias.data.detach()
+
+    if normalize_first:
+        Delta_W_2[1] = Delta_W_2[1] / math.sqrt(model_2.d + 1)
+        Delta_b_2[1] = Delta_b_2[1] / math.sqrt(model_2.d + 1)
+
+    return Delta_W_2, Delta_b_2
+
+
 def get_contributions_1(x, model_1, W0, b0, Delta_W_1, Delta_b_1, normalize_first=True):
     L = model_1.n_layers - 1
     layer_scales = model_1.layer_scales
     intermediate_layer_keys = ["layer_{:,}_intermediate".format(l) for l in range(2, L + 1)]
+
+    bias = model_1.bias
+    scale_bias = model_1.scale_bias
     
     with torch.no_grad():
         x1 = {0: x}
@@ -440,6 +519,45 @@ def get_contributions_1(x, model_1, W0, b0, Delta_W_1, Delta_b_1, normalize_firs
         h0[L + 1] = F.linear(x, W0[L + 1])
         delta_h_1[L + 1] = F.linear(x, Delta_W_1[L + 1])
         h1[L + 1] = layer_scales[L] * model_1.output_layer.forward(x)
+        x1[L + 1] = model_1.activation(h1[L + 1])
+
+        torch.testing.assert_allclose(h0[L + 1] + delta_h_1[L + 1], h1[L + 1], rtol=1e-4, atol=1e-4)
+
+    return h0, delta_h_1, h1, x1
+
+
+def get_contributions_1_bias(x, model_1, W0, b0, Delta_W_1, Delta_b_1, normalize_first=True):
+    L = model_1.n_layers - 1
+    layer_scales = model_1.layer_scales
+    intermediate_layer_keys = ["layer_{:,}_intermediate".format(l) for l in range(2, L + 1)]
+
+    with torch.no_grad():
+        x1 = {0: x}
+        h0 = {1: F.linear(x, W0[1], b0[1])}
+        delta_h_1 = {1: F.linear(x, Delta_W_1[1], Delta_b_1[1])}
+        h1 = {1: model_1.input_layer.forward(layer_scales[0] * x)}
+        if normalize_first:
+            h1[1] = h1[1] / math.sqrt(model_1.d + 1)
+        x1[1] = model_1.activation(h1[1])
+
+        torch.testing.assert_allclose(h0[1] + delta_h_1[1], h1[1], rtol=1e-4, atol=1e-4)
+
+        for i, l in enumerate(range(2, L + 1)):
+            layer_1 = getattr(model_1.intermediate_layers, intermediate_layer_keys[i])
+            x = x1[l - 1]
+
+            h0[l] = F.linear(x, W0[l], b0[l])
+            delta_h_1[l] = F.linear(x, Delta_W_1[l], Delta_b_1[l])
+
+            h1[l] = layer_1.forward(layer_scales[l - 1] * x)
+            x1[l] = model_1.activation(h1[l])
+
+            torch.testing.assert_allclose(h0[l] + delta_h_1[l], h1[l], rtol=1e-4, atol=1e-4)
+
+        x = x1[L]
+        h0[L + 1] = F.linear(x, W0[L + 1], b0[L+1])
+        delta_h_1[L + 1] = F.linear(x, Delta_W_1[L + 1], Delta_b_1[L+1])
+        h1[L + 1] = model_1.output_layer.forward(layer_scales[L] * x)
         x1[L + 1] = model_1.activation(h1[L + 1])
 
         torch.testing.assert_allclose(h0[L + 1] + delta_h_1[L + 1], h1[L + 1], rtol=1e-4, atol=1e-4)
