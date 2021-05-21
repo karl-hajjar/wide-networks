@@ -84,7 +84,7 @@ class TestFcIPLLRBias(unittest.TestCase):
         ys = (1 / np.sqrt(2 * math.pi * var)) * np.exp(-(xs ** 2) / (2 * var))
         with torch.no_grad():
             sns.histplot(values.detach().numpy(), kde=True, stat='density')
-        plt.plot(xs, ys, label='std Gaussian', c='r')
+        plt.plot(xs, ys, label='N(0, {:.0f})'.format(var), c='r')
         plt.legend()
         plt.xlabel('values')
         plt.ylabel('values density')
