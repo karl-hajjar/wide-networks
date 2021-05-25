@@ -5,6 +5,7 @@ ACTIVATION_DICT = {'relu': torch.nn.ReLU,
                    'gelu': torch.nn.GELU,
                    'sigmoid': torch.nn.modules.activation.Sigmoid,
                    'tanh': torch.nn.modules.activation.Tanh,
+                   'leaky_relu': torch.nn.modules.activation.LeakyReLU,
                    'identity': torch.nn.Identity}
 DEFAULT_ACTIVATION = "relu"
 
