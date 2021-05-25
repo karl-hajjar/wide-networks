@@ -35,7 +35,7 @@ scale_first_lr = True
 @click.option('--dataset', '-ds', required=False, type=click.STRING, default="mnist",
               help='Which dataset to train on')
 def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="mnist"):
-    config_path = os.path.join(CONFIG_PATH, 'ip_non_centered_{}.yaml'.format(dataset))
+    config_path = os.path.join(CONFIG_PATH, 'fc_ipllr_{}.yaml'.format(dataset))
     figures_dir = os.path.join(FIGURES_DIR, dataset)
     create_dir(figures_dir)
     log_path = os.path.join(figures_dir, 'log_ip_non_centered_{}.txt'.format(activation))
