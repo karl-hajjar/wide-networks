@@ -4,7 +4,7 @@
 #$ -pe make 16
 
 # Nom du calcul, répertoire de travail :
-#$ -N "muP_training"
+#$ -N "ip_non_centered_training"
 #$ -wd /workdir2/hajjar/projects/wide-networks
 
 # Optionnel, être notifié par email :

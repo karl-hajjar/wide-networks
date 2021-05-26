@@ -17,10 +17,12 @@ CONFIG_PATH = os.path.join(ROOT, 'pytorch/configs/abc_parameterizations')
 N_TRIALS = 5
 SEED = 30
 L = 6
+INIT_MEAN = 1.0
 width = 1024
 n_warmup_steps = 1
 renorm_first = True
 scale_first_lr = True
+
 
 
 @click.command()
@@ -59,6 +61,7 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="
         config_dict['architecture']['n_layers'] = L + 1
         config_dict['optimizer']['params']['lr'] = base_lr
         config_dict['activation']['name'] = activation
+        config_dict['initializer']['params']["mean"] = INIT_MEAN
 
         base_model_config = ModelConfig(config_dict)
 
