@@ -24,7 +24,6 @@ renorm_first = True
 scale_first_lr = True
 
 
-
 @click.command()
 @click.option('--activation', '-act', required=False, type=click.STRING, default="relu",
               help='Which activation function to use for the network')
@@ -61,7 +60,7 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="
         config_dict['architecture']['n_layers'] = L + 1
         config_dict['optimizer']['params']['lr'] = base_lr
         config_dict['activation']['name'] = activation
-        config_dict['initializer']['params']["mean"] = INIT_MEAN
+        config_dict['initializer']['params']['mean'] = INIT_MEAN
 
         base_model_config = ModelConfig(config_dict)
 
@@ -103,11 +102,6 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="
                 if i == 0:
                     param_group['lr'] = param_group['lr'] * (ip.d + 1)
 
-        for ip in ips_non_centered_renorm_scale_lr_calib:
-            for i, param_group in enumerate(ip.optimizer.param_groups):
-                if i == 0:
-                    param_group['lr'] = param_group['lr'] * (ip.d + 1)
-
         logger.info('Copying parameters of base ip_non_centered')
         for i in range(N_TRIALS):
             ips_non_centered_renorm_scale_lr[i].copy_initial_params_from_model(ips_non_centered[i])
@@ -120,6 +114,11 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="
             model.scheduler = WarmupSwitchLR(model.optimizer, initial_lrs=model.lr_scales, warm_lrs=model.lr_scales,
                                              base_lr=model.base_lr, model=model, batches=batches,
                                              **scheduler.params)
+
+        # scale lr of first layer if needed
+        logger.info('Scaling warm lrs for ips_non_centered_renorm_scale_lr_calib')
+        for model in ips_non_centered_renorm_scale_lr_calib:
+            model.scheduler.warm_lrs[0] = model.scheduler.warm_lrs[0] * (model.d + 1)
 
         results = dict()
         logger.info('Generating training results ...')
