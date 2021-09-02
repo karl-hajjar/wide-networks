@@ -65,7 +65,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             raise ValueError("`n_warmup_steps` argument must be > 0")
 
     # @staticmethod
-    def calibrate_base_lr(self, model, batches, normalize_first=True):
+    def calibrate_base_lr(self, model, batches):
         logging.info("Calibrating initial base learning rate")
 
         # use a copy of the model and optimizer so as not to modify the parameters of the object passed
@@ -86,7 +86,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
 
         # take first step of optimization
         x, y = batches[0]
-        y_hat = model_.forward(x, normalize_first=normalize_first)
+        y_hat = model_.forward(x)
         loss = model_.loss(y_hat, y)
         loss.backward()
         optimizer.step()
@@ -104,17 +104,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             init_contrib = (model_.width ** (-model_.a[0])) * initial_model.input_layer.forward(x)
             update_contrib = F.linear(x, Delta_W_1, Delta_b_1)
 
-            if normalize_first:
-                init_contrib = init_contrib / math.sqrt(model_.d + 1)
-                update_contrib = update_contrib / math.sqrt(model_.d + 1)
-
-            # inv_scale = 1.0 / update_contrib.abs().mean()
-
-            # base_lrs.append(inv_scale.item())
-            if normalize_first:
-                base_lrs.append(self.base_lr * (model_.d + 1))
-            else:
-                base_lrs.append(self.base_lr)
+            base_lrs.append(self.base_lr)
 
             x = model_.activation(init_contrib + base_lrs[0] * update_contrib)  # should be Theta(1)
 

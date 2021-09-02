@@ -211,7 +211,9 @@ class BaseABCParam(BaseModel):
         :return:
         """
         if not hasattr(self, "U") or (self.U is None):
-            self.U = [torch.normal(mean=0, std=std, size=self.input_layer.weight.size(), requires_grad=False)]
+            # normalize std of first layer to avoid problems with large input dimension d
+            self.U = [torch.normal(mean=0, std=std/math.sqrt(self.d + 1), size=self.input_layer.weight.size(),
+                                   requires_grad=False)]
             self.U += [torch.normal(mean=mean, std=std, size=(self.width, self.width), requires_grad=False)
                        for _ in self.intermediate_layers]
             self.U.append(torch.normal(mean=mean, std=1.0, size=self.output_layer.weight.size(), requires_grad=False))
@@ -279,12 +281,10 @@ class BaseABCParam(BaseModel):
                                                                                                      l,
                                                                                                      self.v[l].size()))
 
-    def forward(self, x, normalize_first=True):
+    def forward(self, x):
         # all about optimization with Lightning can be found here (e.g. how to define a particular optim step) :
         # https://pytorch-lightning.readthedocs.io/en/latest/optimizers.html
         h = (self.width ** (-self.a[0])) * self.input_layer.forward(x)  # h_0 first layer pre-activations
-        if normalize_first:
-            h = h / math.sqrt(self.d + 1)
         x = self.activation(h)  # x_0, first layer activations
 
         for l, layer in enumerate(self.intermediate_layers):  # L-1 intermediate layers
@@ -302,6 +302,11 @@ class BaseABCParam(BaseModel):
             return x
 
     def training_step(self, batch, batch_nb):
+        # if one step of optimization already occurred, update the learning rates via the scheduler
+        if self.optimizer._step_count > 0:
+            if hasattr(self, "scheduler") and self.scheduler is not None:
+                self.scheduler.step()
+
         x, y = batch
         y_hat = self.forward(x)
         loss = self.loss(y_hat, y)
@@ -321,14 +326,16 @@ class BaseABCParam(BaseModel):
         for layer, lr in lrs.items():
             tensorboard_logs['learning_rates/{}'.format(layer)] = lr
 
-        return {'loss': loss, 'likelihood': likelihood, 'accuracy': acc, 'pred_proba': pred_proba.mean(),
+        return {'output': y_hat.abs().mean(), 'loss': loss, 'likelihood': likelihood, 'accuracy': acc, 'pred_proba': pred_proba.mean(),
                 'log': tensorboard_logs}
 
     # TODO : Apparently 'training_epoch_end' is not compatible with newer versions of PyTorch Lightning and might have
     #  to be changed to some other name such as 'on_epoch_end' for compliance with versions >= 0.9.0.
     def training_epoch_end(self, outputs):
+        all_outputs = [x['output'] for x in outputs]
         all_losses = [x['loss'] for x in outputs]
-        results = {'all_losses': all_losses,
+        results = {'all_outputs': all_outputs,
+                   'all_losses': all_losses,
                    'loss': np.mean(all_losses),
                    'likelihood': np.mean([x['likelihood'] for x in outputs]),
                    'accuracy': np.mean([x['accuracy'] for x in outputs]),
