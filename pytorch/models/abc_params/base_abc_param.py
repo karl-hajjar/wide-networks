@@ -99,7 +99,7 @@ class BaseABCParam(BaseModel):
                 var = 2.0
             elif activation == 'gelu':
                 var = 4.0
-            elif activation == 'elu':
+            elif activation in ['elu', 'tanh']:
                 var = 1.0
         elif ("var" in config.params.keys()) and (config.params["var"] is not None):
             var = config.params["var"]
