@@ -25,7 +25,7 @@ class ABCRunner(JobRunner):
 
     def __init__(self, config_dict: dict, base_experiment_path: str, model: BaseABCParam, train_dataset: Dataset,
                  test_dataset: Dataset, val_dataset: Dataset = None, train_ratio: float = 0.8, n_trials: int = 10,
-                 early_stopping=False):
+                 early_stopping=False, calibrate_base_lr=False):
         self.width = config_dict['architecture']['width']
         self.batch_size = config_dict['training']['batch_size']
         self._set_base_lr(config_dict)
@@ -46,6 +46,8 @@ class ABCRunner(JobRunner):
             self._set_train_val_data_from_train(train_dataset, train_ratio)
         self.test_dataset = test_dataset
         self._set_data_loaders()
+        if calibrate_base_lr:
+            self.lr_calibration_batches = list(self.train_data_loader)[:2]
 
         self.model = model
         self.n_trials = n_trials
@@ -95,11 +97,13 @@ class ABCRunner(JobRunner):
         self.val_data_loader = DataLoader(self.val_dataset, shuffle=False, batch_size=self.batch_size)
         self.test_data_loader = DataLoader(self.test_dataset, shuffle=False, batch_size=self.batch_size)
 
-    def run(self):
+    def run(self, **kwargs):
         for idx in range(self.n_trials):
-            self._run_trial(idx)
+            self._run_trial(idx, **kwargs)
 
-    def _run_trial(self, idx):
+    def _run_trial(self, idx, **kwargs):
+        if hasattr(self, "lr_calibration_batches"):
+            kwargs['lr_calibration_batches'] = self.lr_calibration_batches
         trial_name = 'trial_{}'.format(idx + 1)
         self.trial_dir = os.path.join(self.base_experiment_path, trial_name)  # folder to hold trial results
 
@@ -116,7 +120,7 @@ class ABCRunner(JobRunner):
             logger = set_up_logger(log_dir)
 
             config = ModelConfig(config_dict=self.config_dict)  # define the config as a class to pass to the model
-            model = self.model(config)  # define the model
+            model = self.model(config, **kwargs)  # define the model
 
             logger.info('----- Trial {:,} ----- with model config {}\n'.format(idx + 1, self.model_config))
             self._log_experiment_info(len(self.train_dataset), len(self.val_dataset), len(self.test_dataset), model.std)

@@ -1,11 +1,11 @@
 import os
 import logging
 import click
+from copy import deepcopy
 
 from pytorch.job_runners.abc_parameterizations.abc_runner import ABCRunner
 from pytorch.models.abc_params.fully_connected.standard_fc_ip import StandardFCIP
 from utils.tools import read_yaml
-from utils.dataset.mnist import load_data
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(FILE_DIR)))  # go back 3 times from this directory
@@ -57,6 +57,7 @@ def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="m
 
     # prepare data
     training_dataset, test_dataset = load_data(download=download, flatten=True)
+    val_dataset = deepcopy(training_dataset)  # copy train_data into validation_data
 
     for L in Ls:
         for width in WIDTHS:
@@ -67,7 +68,8 @@ def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="m
             config_dict['training']['n_steps'] = n_steps
             config_dict['training']['batch_size'] = batch_size
             runner = ABCRunner(config_dict, base_experiment_path, model=StandardFCIP, train_dataset=training_dataset,
-                               test_dataset=test_dataset, early_stopping=False, n_trials=N_TRIALS)
+                               test_dataset=test_dataset, val_dataset=val_dataset, early_stopping=False,
+                               n_trials=N_TRIALS)
             runner.run()
 
 

@@ -154,7 +154,7 @@ def plot_metric_vs_time(L, results: [list, dict], metric: str, time: str, save_p
 
 
 def plot_metric_vs_time_std(width: int, results: list, metric: str, time: str, ax=None, metric_name: str = None,
-                            mode: str = None, marker='o'):
+                            mode: str = None, label=None, marker='o'):
     """
     Plots a certain metric either vs # optimization steps or vs # epochs averaged over multiple trials. `time` can
     only be 'step' if `mode` is 'training'.
@@ -202,7 +202,7 @@ def plot_metric_vs_time_std(width: int, results: list, metric: str, time: str, a
                 idx += 1
         # ys = [res[metric] for res in results]
 
-    sns.lineplot(data=y_df, x=time, y=metric_name, ax=ax, marker=marker, label='m={}'.format(width))
+    sns.lineplot(data=y_df, x=time, y=metric_name, ax=ax, marker=marker, label=label)
 
 
 def plot_metric_vs_time_std_widths(L, results: dict, metric: str, time: str, ax=None, metric_name: str = None,

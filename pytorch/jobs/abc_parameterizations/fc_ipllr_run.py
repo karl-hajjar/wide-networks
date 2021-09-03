@@ -1,6 +1,7 @@
 import os
 import logging
 import click
+from copy import deepcopy
 
 from pytorch.job_runners.abc_parameterizations.abc_runner import ABCRunner
 from pytorch.models.abc_params.fully_connected.ipllr import FcIPLLR
@@ -11,11 +12,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(FILE_DIR)))  # go back 3 
 CONFIG_PATH = os.path.join(ROOT, 'pytorch/configs/abc_parameterizations')
 EXPERIMENTS_DIR = 'experiments'
 MODEL_NAME = 'fc_ipllr'
-CONFIG_FILE = 'fc_ipllr_mnist.yaml'
+CONFIG_FILE = 'fc_ipllr.yaml'
 
 N_TRIALS = 5
 Ls = [6]  # n_layers - 1
 WIDTHS = [1024]
+N_WARMUP_STEPS = 1
 
 
 @click.command()
@@ -32,11 +34,11 @@ WIDTHS = [1024]
 @click.option('--download', '-dld', required=False, type=click.BOOL, default=False,
               help='Whether to download the data or not')
 def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="mnist", download=False):
-    config_path = os.path.join(CONFIG_PATH, 'fc_ipllr_{}.yaml'.format(dataset))
+    model_name = '{}_{}'.format(MODEL_NAME, dataset)
+    config_path = os.path.join(CONFIG_PATH, '{}.yaml'.format(model_name))
     config_dict = read_yaml(config_path)
 
     # define corresponding directory in experiments folder
-    model_name = '{}_{}.yaml'.format(MODEL_NAME, dataset)
     base_experiment_path = os.path.join(ROOT, EXPERIMENTS_DIR, model_name)  # base experiment folder
 
     # Load data & define models
@@ -56,6 +58,7 @@ def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="m
 
     # prepare data
     training_dataset, test_dataset = load_data(download=download, flatten=True)
+    val_dataset = deepcopy(training_dataset)  # copy train_data into validation_data
 
     for L in Ls:
         for width in WIDTHS:
@@ -66,8 +69,9 @@ def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="m
             config_dict['training']['n_steps'] = n_steps
             config_dict['training']['batch_size'] = batch_size
             runner = ABCRunner(config_dict, base_experiment_path, model=FcIPLLR, train_dataset=training_dataset,
-                               test_dataset=test_dataset, early_stopping=False, n_trials=N_TRIALS)
-            runner.run()
+                               test_dataset=test_dataset, val_dataset=val_dataset, early_stopping=False,
+                               n_trials=N_TRIALS, calibrate_base_lr=True)
+            runner.run(n_warmup_steps=N_WARMUP_STEPS)
 
 
 if __name__ == '__main__':
