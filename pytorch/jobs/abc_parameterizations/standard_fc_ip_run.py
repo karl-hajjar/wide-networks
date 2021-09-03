@@ -33,11 +33,11 @@ WIDTHS = [1024]
 @click.option('--download', '-dld', required=False, type=click.BOOL, default=False,
               help='Whether to download the data or not')
 def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="mnist", download=False):
-    config_path = os.path.join(CONFIG_PATH, 'fc_ipllr_{}.yaml'.format(dataset))
+    model_name = '{}_{}'.format(MODEL_NAME, dataset)
+    config_path = os.path.join(CONFIG_PATH, '{}.yaml'.format(model_name))
     config_dict = read_yaml(config_path)
 
     # define corresponding directory in experiments folder
-    model_name = '{}_{}.yaml'.format(MODEL_NAME, dataset)
     base_experiment_path = os.path.join(ROOT, EXPERIMENTS_DIR, model_name)  # base experiment folder
 
     # Load data & define models

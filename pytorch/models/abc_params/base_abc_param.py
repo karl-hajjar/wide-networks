@@ -303,7 +303,7 @@ class BaseABCParam(BaseModel):
 
     def training_step(self, batch, batch_nb):
         # if one step of optimization already occurred, update the learning rates via the scheduler
-        if self.optimizer._step_count > 0:
+        if self.global_step > 0:
             if hasattr(self, "scheduler") and self.scheduler is not None:
                 self.scheduler.step()
 
