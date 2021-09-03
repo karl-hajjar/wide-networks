@@ -317,9 +317,9 @@ class BaseABCParam(BaseModel):
             pred_proba, pred_label = torch.max(probas, dim=1)  # proba and index of predicted label
             acc = (pred_label == y).sum() / float(len(y))
 
-        lrs_list = self._get_opt_lr()
+        lrs_list = self._get_opt_lr()  # most abc_prams share the same lr for intermediate layers
         lrs = {'input_layer': lrs_list[0], 'intermediate_layers': lrs_list[1],
-               'output_layer': lrs_list[self.n_layers - 1]}
+               'output_layer': lrs_list[-1]}
 
         tensorboard_logs = {'training/loss': loss, 'training/likelihood': likelihood, 'training/accuracy': acc,
                             'training/predicted_label_proba': pred_proba.mean()}
