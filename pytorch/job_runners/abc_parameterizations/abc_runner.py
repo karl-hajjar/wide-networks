@@ -103,6 +103,9 @@ class ABCRunner(JobRunner):
         trial_name = 'trial_{}'.format(idx + 1)
         self.trial_dir = os.path.join(self.base_experiment_path, trial_name)  # folder to hold trial results
 
+        # TODO: if os.path.exists(self.trial_dir), read lines of corresponding log file and check if last line has
+        #  "test" in it. If not, re-run the trial because it means there was a problem with the run.
+
         if not os.path.exists(self.trial_dir):  # run trial only if it doesn't already exist
             create_dir(self.trial_dir)  # directory to save the trial
             set_random_seeds(self.trial_seeds[idx])  # set random seed for the trial

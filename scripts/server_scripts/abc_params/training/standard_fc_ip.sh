@@ -14,6 +14,8 @@
 #$ -e error.txt
 #$ -j y
 
+echo $PWD
+
 echo "Loading anaconda ..."
 module load anaconda/2020.07  # load anaconda module
 
@@ -24,5 +26,6 @@ echo "Exporting python path for library wide-networks ..."
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 
 echo "Launching python script ..."
-python3 scripts/server_scripts/abc_params/training/ipllr.py --activation=$activation --dataset=$dataset --n_steps=$n_steps
+python3 pytorch/jobs/abc_parameterizations/standard_fc_ip_run.py --activation=$activation --n_steps=$n_steps --dataset=$dataset
+
 
