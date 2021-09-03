@@ -4,7 +4,7 @@
 #$ -pe make 16
 
 # Nom du calcul, répertoire de travail :
-#$ -N "ipllr_training"
+#$ -N "standard_fc_ip_training"
 #$ -wd /workdir2/hajjar/projects/wide-networks
 
 # Optionnel, être notifié par email :
@@ -26,6 +26,5 @@ echo "Exporting python path for library wide-networks ..."
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 
 echo "Launching python script ..."
-python3 pytorch/jobs/abc_parameterizations/standard_fc_ip_run.py --activation=$activation --n_steps=$n_steps --dataset=$dataset
-
-
+python3 pytorch/jobs/abc_parameterizations/standard_fc_ip_run.py --activation="relu" --n_steps=600 --dataset="mnist"
+# python3 pytorch/jobs/abc_parameterizations/standard_fc_ip_run.py --activation=$activation --n_steps=$n_steps --dataset=$dataset
