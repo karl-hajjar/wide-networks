@@ -44,6 +44,9 @@ class ABCRunner(JobRunner):
 
         if val_dataset is None:
             self._set_train_val_data_from_train(train_dataset, train_ratio)
+        else:
+            self.train_dataset = train_dataset
+            self.val_dataset = val_dataset
         self.test_dataset = test_dataset
         self._set_data_loaders()
         if calibrate_base_lr:
