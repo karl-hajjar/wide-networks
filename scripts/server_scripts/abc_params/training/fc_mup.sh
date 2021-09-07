@@ -4,7 +4,7 @@
 #$ -pe make 16
 
 # Nom du calcul, répertoire de travail :
-#$ -N "standard_fc_ip_training"
+#$ -N "fc_mup_exp"
 #$ -wd /workdir2/hajjar/projects/wide-networks
 
 # Optionnel, être notifié par email :

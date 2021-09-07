@@ -11,8 +11,8 @@ FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(FILE_DIR)))  # go back 3 times from this directory
 CONFIG_PATH = os.path.join(ROOT, 'pytorch/configs/abc_parameterizations')
 EXPERIMENTS_DIR = 'experiments'
-MODEL_NAME = 'standard_fc_ip'
-CONFIG_FILE = 'standard_fc_ip.yaml'
+MODEL_NAME = 'fc_muP'
+CONFIG_FILE = 'standard_fc_ip'  # fc muP has the same config as std fc ip
 
 N_TRIALS = 5
 Ls = [6]  # n_layers - 1
@@ -34,7 +34,7 @@ WIDTHS = [1024]
               help='Whether to download the data or not')
 def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="mnist", download=False):
     model_name = '{}_{}'.format(MODEL_NAME, dataset)
-    config_path = os.path.join(CONFIG_PATH, '{}.yaml'.format(model_name))
+    config_path = os.path.join(CONFIG_PATH, '{}_{}.yaml'.format(CONFIG_FILE, dataset))
     config_dict = read_yaml(config_path)
 
     # define corresponding directory in experiments folder
