@@ -52,9 +52,10 @@ def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, b
                     'activation={}_lr={}_batchsize={}_bias={}'.format(activation, lr, batch_size, bias),
                     'trial_{}'.format(idx),
                     'results.pickle')
-                print(results_path)
+                # print(results_path)
                 if not os.path.exists(results_path):
-                    logging.warning('results for trial {:,} with L={:,} and m={:,} was not found'.format(idx, L, width))
+                    logging.warning('results for trial {:,} with L={:,} and m={:,} was not found at {}'\
+                                    .format(idx, L, width, results_path))
                 else:
                     res.append(load_pickle(results_path, single=True))
             res_dict[L][width] = res
@@ -153,8 +154,8 @@ def plot_metric_vs_time(L, results: [list, dict], metric: str, time: str, save_p
         plt.savefig(save_path)
 
 
-def plot_metric_vs_time_std(width: int, results: list, metric: str, time: str, ax=None, metric_name: str = None,
-                            mode: str = None, label=None, marker='o'):
+def plot_metric_vs_time_std(results: list, metric: str, time: str, ax=None, metric_name: str = None,
+                            mode: str = None, label=None, marker='o', loc=None, legend_title=None):
     """
     Plots a certain metric either vs # optimization steps or vs # epochs averaged over multiple trials. `time` can
     only be 'step' if `mode` is 'training'.
@@ -203,6 +204,10 @@ def plot_metric_vs_time_std(width: int, results: list, metric: str, time: str, a
         # ys = [res[metric] for res in results]
 
     sns.lineplot(data=y_df, x=time, y=metric_name, ax=ax, marker=marker, label=label)
+    #g = sns.lineplot(data=y_df, x=time, y=metric_name, ax=ax, marker=marker, label=label)
+    # sns.lineplot(data=y_df, x=time, y=metric_name, ax=ax, marker=marker)
+    # g.legend(loc=loc, title=legend_title)
+    # plt.show()
 
 
 def plot_metric_vs_time_std_widths(L, results: dict, metric: str, time: str, ax=None, metric_name: str = None,
@@ -295,3 +300,21 @@ def plot_metric_vs_time_std_L(fig_path: str, results: dict, metric: str, time: s
         plt.savefig(fig_path)
     if show:
         plt.show()
+
+
+def set_figure_fontsizes(fontsize: [int, float] = 12, ax=None, legend_fontsize=None, ticks_fontsize=None,
+                         labels_fontsize=None):
+    if ax is None:
+        ax = plt.gca()
+    if legend_fontsize is None:
+        legend_fontsize = fontsize
+    if ticks_fontsize is None:
+        ticks_fontsize = fontsize
+    if labels_fontsize is None:
+        labels_fontsize = fontsize
+
+    ax.legend(prop={'size': legend_fontsize})
+    ax.tick_params(axis='x', labelsize=ticks_fontsize)
+    ax.tick_params(axis='y', labelsize=ticks_fontsize)
+    ax.xaxis.label.set_size(labels_fontsize)
+    ax.yaxis.label.set_size(labels_fontsize)
