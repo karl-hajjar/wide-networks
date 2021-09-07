@@ -24,4 +24,4 @@ class BaseMuP(BaseABCParam):
         c = 0
 
         # create optimizer, loss, activation, normalization
-        super().__init__(config, a, b, c, width)
+        BaseABCParam.__init__(self, config, a, b, c, width)
