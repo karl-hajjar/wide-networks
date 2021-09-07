@@ -204,10 +204,6 @@ def plot_metric_vs_time_std(results: list, metric: str, time: str, ax=None, metr
         # ys = [res[metric] for res in results]
 
     sns.lineplot(data=y_df, x=time, y=metric_name, ax=ax, marker=marker, label=label)
-    #g = sns.lineplot(data=y_df, x=time, y=metric_name, ax=ax, marker=marker, label=label)
-    # sns.lineplot(data=y_df, x=time, y=metric_name, ax=ax, marker=marker)
-    # g.legend(loc=loc, title=legend_title)
-    # plt.show()
 
 
 def plot_metric_vs_time_std_widths(L, results: dict, metric: str, time: str, ax=None, metric_name: str = None,
@@ -313,7 +309,7 @@ def set_figure_fontsizes(fontsize: [int, float] = 12, ax=None, legend_fontsize=N
     if labels_fontsize is None:
         labels_fontsize = fontsize
 
-    ax.legend(prop={'size': legend_fontsize})
+    # ax.legend(prop={'size': legend_fontsize})
     ax.tick_params(axis='x', labelsize=ticks_fontsize)
     ax.tick_params(axis='y', labelsize=ticks_fontsize)
     ax.xaxis.label.set_size(labels_fontsize)
