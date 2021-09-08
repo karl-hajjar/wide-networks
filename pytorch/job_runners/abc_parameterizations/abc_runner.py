@@ -19,7 +19,7 @@ class ABCRunner(JobRunner):
     A class to run an experiment with an abc-parameterization on a given dataset.
     """
 
-    MAX_EPOCHS = 10
+    MAX_EPOCHS = 15
     MAX_STEPS = int(1.5e3)
     BASE_LR = 0.001
 
