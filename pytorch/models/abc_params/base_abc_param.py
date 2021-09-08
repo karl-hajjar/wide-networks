@@ -302,11 +302,7 @@ class BaseABCParam(BaseModel):
             return x
 
     def training_step(self, batch, batch_nb):
-        # if one step of optimization already occurred, update the learning rates via the scheduler
-        if self.global_step > 0:
-            if hasattr(self, "scheduler") and self.scheduler is not None:
-                self.scheduler.step()
-
+        # if scheduler is used for the model, then the latter should override the training_step method
         x, y = batch
         y_hat = self.forward(x)
         loss = self.loss(y_hat, y)

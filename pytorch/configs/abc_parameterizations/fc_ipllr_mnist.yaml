@@ -24,7 +24,7 @@ optimizer:
 scheduler:
   name: "warmup_switch"
   params:
-    n_warmup_steps: 3
+    n_warmup_steps: 1
 
 initializer:
   name: "custom"

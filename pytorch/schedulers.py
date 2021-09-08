@@ -68,18 +68,18 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
     def calibrate_base_lr(self, model, batches):
         logging.info("Calibrating initial base learning rate")
 
-        # use a copy of the model and optimizer so as not to modify the parameters of the object passed
+        # use a (mock) copy of the model and optimizer so as not to modify the parameters of the object passed
         model_ = deepcopy(model)
         model_.train()
 
-        base_lr = 1.0
+        base_lr_mock = 1.0
         # set mock SGD optimizer with base_lr = 1.0 so that no additional scaling factor appears
         param_groups = \
-            [{'params': model_.input_layer.parameters(), 'lr': base_lr * model_.lr_scales[0]}] + \
-            [{'params': layer.parameters(), 'lr': base_lr * model_.lr_scales[l+1]}
+            [{'params': model_.input_layer.parameters(), 'lr': base_lr_mock * model_.lr_scales[0]}] + \
+            [{'params': layer.parameters(), 'lr': base_lr_mock * model_.lr_scales[l+1]}
              for l, layer in enumerate(model_.intermediate_layers)] + \
-            [{'params': model_.output_layer.parameters(), 'lr': base_lr * model_.lr_scales[model_.n_layers - 1]}]
-        optimizer = SGD(param_groups, lr=1.0)
+            [{'params': model_.output_layer.parameters(), 'lr': base_lr_mock * model_.lr_scales[model_.n_layers - 1]}]
+        optimizer = SGD(param_groups, lr=base_lr_mock)
 
         # remember initial weight values
         initial_model = deepcopy(model_)
@@ -106,7 +106,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
 
             base_lrs.append(self.base_lr)
 
-            x = model_.activation(init_contrib + base_lrs[0] * update_contrib)  # should be Theta(1)
+            x = model_.activation(init_contrib + base_lrs[0] * update_contrib)  # should be Theta(1) for large widths
 
             # intermediate layer grads
             for l in range(2, model_.n_layers):
@@ -114,7 +114,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
                 layer = getattr(model_.intermediate_layers, layer_key)
                 init_layer = getattr(initial_model.intermediate_layers, layer_key)
 
-                Delta_W = (model.width ** (-model.a[l - 1])) * (layer.weight.data - init_layer.weight.data)
+                Delta_W = (model_.width ** (-model.a[l - 1])) * (layer.weight.data - init_layer.weight.data)
 
                 init_contrib = initial_model.layer_scales[l - 1] * init_layer.forward(x)
                 update_contrib = F.linear(x, Delta_W)
@@ -131,13 +131,11 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             init_contrib = initial_model.layer_scales[model_.n_layers - 1] * initial_model.output_layer.forward(x)
             update_contrib = F.linear(x, Delta_W)
 
-            # inv_scale = 1.0 / update_contrib.abs().mean()
             inv_scale = 0.1 / update_contrib.abs().mean()
-            # inv_scale = 0.01 / update_contrib.abs().mean()
 
             base_lrs.append(inv_scale.item())
 
-        print('initial base lr :', base_lrs)
+        logging.info('initial base lrs :', base_lrs)
         return base_lrs
 
     def _set_param_group_lrs(self, base_lrs: Union[float, list] = None):

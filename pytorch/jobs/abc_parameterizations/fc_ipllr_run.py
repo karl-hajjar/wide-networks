@@ -68,6 +68,11 @@ def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="m
             config_dict['activation']['name'] = activation
             config_dict['training']['n_steps'] = n_steps
             config_dict['training']['batch_size'] = batch_size
+            config_dict['scheduler'] = {'name': 'warmup_switch',
+                                        'params': {'n_warmup_steps': N_WARMUP_STEPS,
+                                                   'calibrate_base_lr': True,
+                                                   'default_calibration': False}}
+
             runner = ABCRunner(config_dict, base_experiment_path, model=FcIPLLR, train_dataset=training_dataset,
                                test_dataset=test_dataset, val_dataset=val_dataset, early_stopping=False,
                                n_trials=N_TRIALS, calibrate_base_lr=True)

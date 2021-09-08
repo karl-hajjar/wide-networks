@@ -66,7 +66,7 @@ class BaseIPLLR(BaseIP):
                 raise Exception("Exception while trying to create the scheduler : {}".format(e))
 
     # TODO : if bias is set to True, then the learning rates for the biases need to be set appropriately and differently
-    #  from the weights, ie for IP-LLR they need to scale as dh in m^{-1}m^{(L-l)/2}.
+    #  from the weights: for IP-LLR they need to scale as dh in m^{-1}m^{(L-l)/2}.
 
     def training_step(self, batch, batch_nb):
         out = super().training_step(batch, batch_nb)
