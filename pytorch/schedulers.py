@@ -135,7 +135,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
 
             base_lrs.append(inv_scale.item())
 
-        logging.info('initial base lrs :', base_lrs)
+        logging.info('initial base lrs : {}'.format(base_lrs))
         return base_lrs
 
     def _set_param_group_lrs(self, base_lrs: Union[float, list] = None):

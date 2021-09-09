@@ -67,8 +67,18 @@ class BaseIPLLR(BaseIP):
 
     # TODO : if bias is set to True, then the learning rates for the biases need to be set appropriately and differently
     #  from the weights: for IP-LLR they need to scale as dh in m^{-1}m^{(L-l)/2}.
+    # def training_step(self, batch, batch_nb):
+    #     out = super().training_step(batch, batch_nb)
+    #     self.scheduler.step()
+    #     return out
 
-    def training_step(self, batch, batch_nb):
-        out = super().training_step(batch, batch_nb)
-        self.scheduler.step()
-        return out
+    def optimizer_step(self, epoch: int, batch_idx: int, optimizer, optimizer_idx: int, second_order_closure=None,
+                       on_tpu: bool = False, using_native_amp: bool = False, using_lbfgs: bool = False):
+        """
+        Override base method `optimizer_step` from pytorch.Lightning to add scheduler step after every optimization step
+        (and not simply at every epoch).
+        :return:
+        """
+        super().optimizer_step(epoch, batch_idx, optimizer, optimizer_idx, second_order_closure, on_tpu,
+                               using_native_amp, using_lbfgs)
+        self.scheduler.step()  # take scheduler step right after optimization step
