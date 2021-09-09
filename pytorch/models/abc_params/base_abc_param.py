@@ -302,7 +302,8 @@ class BaseABCParam(BaseModel):
             return x
 
     def training_step(self, batch, batch_nb):
-        # if scheduler is used for the model, then the latter should override the training_step method
+        # If scheduler is used after every SGD step for the model, then the latter should override the optimizer_step
+        # method of the lightning module.
         x, y = batch
         y_hat = self.forward(x)
         loss = self.loss(y_hat, y)
