@@ -177,8 +177,8 @@ class WarmupSwitchLRBias(WarmupSwitchLR):
         self.current_bias_lrs = initial_bias_lrs
         self._last_bias_lrs = None
 
-        super().__init__(optimizer, initial_lrs, warm_lrs, n_warmup_steps, base_lr, last_epoch, calibrate_base_lr,
-                         model, batches, default_calibration)
+        super().__init__(optimizer, initial_lrs, warm_lrs, n_warmup_steps, base_lr, last_epoch, calibrate_base_lr=False,
+                         model=None, batches=None, default_calibration=False)
 
     @staticmethod
     def _check_lrs(optimizer, initial_lrs, warm_lrs):
@@ -188,110 +188,6 @@ class WarmupSwitchLRBias(WarmupSwitchLR):
             raise ValueError("There must be as many learning rates as there are parameter groups but there were {:,} "
                              "parameter groups but {:,} initial learning rates and {:,} warm learning rates".
                              format(n_param_groups, len(initial_lrs), len(warm_lrs)))
-
-    def calibrate_base_lr(self, model, batches, normalize_first=True):
-        logging.info("Calibrating initial base learning rate")
-
-        # use a copy of the model and optimizer so as not to modify the parameters of the object passed
-        model_ = deepcopy(model)
-        model_.train()
-
-        base_lr = 1.0
-        # set mock SGD optimizer with base_lr = 1.0 so that no additional scaling factor appears
-        param_groups = \
-            [{'params': model_.input_layer.parameters(), 'lr': base_lr * model_.lr_scales[0]}] + \
-            [{'params': layer.parameters(), 'lr': base_lr * model_.lr_scales[l+1]}
-             for l, layer in enumerate(model_.intermediate_layers)] + \
-            [{'params': model_.output_layer.parameters(), 'lr': base_lr * model_.lr_scales[model_.n_layers - 1]}]
-
-        weight_param_groups = \
-            [{'params': model_.input_layer.weight, 'lr': model_.base_lr * model_.lr_scales[0], 'name': 'weights_1'}] + \
-            [{'params': layer.weight, 'lr': model_.base_lr * model_.lr_scales[l+1], 'name': 'weights_{}'.format(l+2)}
-             for l, layer in enumerate(model_.intermediate_layers)] + \
-            [{'params': model_.output_layer.weight, 'lr': model_.base_lr * model_.lr_scales[model_.n_layers - 1],
-              'name': 'weights_{}'.format(model_.n_layers)}]
-
-        bias_param_groups = \
-            [{'params': model_.input_layer.bias, 'lr': model_.base_lr * model_.bias_lr_scales[0], 'name': 'bias_1'}] + \
-            [{'params': layer.bias, 'lr': model_.base_lr * model_.bias_lr_scales[l+1], 'name': 'bias_{}'.format(l+2)}
-             for l, layer in enumerate(model_.intermediate_layers)] + \
-            [{'params': model_.output_layer.bias, 'lr': model_.base_lr * model_.bias_lr_scales[model_.n_layers - 1],
-              'name': 'bias_{}'.format(model_.n_layers)}]
-
-        param_groups = weight_param_groups + bias_param_groups
-
-        optimizer = SGD(param_groups, lr=1.0)
-
-        # remember initial weight values
-        initial_model = deepcopy(model_)
-
-        # take first step of optimization
-        x, y = batches[0]
-        y_hat = model_.forward(x, normalize_first=normalize_first)
-        loss = model_.loss(y_hat, y)
-        loss.backward()
-        optimizer.step()
-
-        # calibrate the lr using activations of second forward pass
-        model_.eval()
-        x, _ = batches[1]
-        base_lrs = []
-        with torch.no_grad():
-            Delta_W_1 = (model_.width ** (-model_.a[0])) * (model_.input_layer.weight.data -
-                                                            initial_model.input_layer.weight.data)
-            Delta_b_1 = (model_.width ** (-model_.a[0])) * (model_.input_layer.bias.data -
-                                                            initial_model.input_layer.bias.data)
-
-            init_contrib = (model_.width ** (-model_.a[0])) * initial_model.input_layer.forward(x)
-            update_contrib = F.linear(x, Delta_W_1, Delta_b_1)
-
-            if normalize_first:
-                init_contrib = init_contrib / math.sqrt(model_.d + 1)
-                update_contrib = update_contrib / math.sqrt(model_.d + 1)
-
-            # inv_scale = 1.0 / update_contrib.abs().mean()
-
-            # base_lrs.append(inv_scale.item())
-            if normalize_first:
-                base_lrs.append(self.base_lr * (model_.d + 1))
-            else:
-                base_lrs.append(self.base_lr)
-
-            x = model_.activation(init_contrib + base_lrs[0] * update_contrib)  # should be Theta(1)
-
-            # intermediate layer grads
-            for l in range(2, model_.n_layers):
-                layer_key = "layer_{:,}_intermediate".format(l)
-                layer = getattr(model_.intermediate_layers, layer_key)
-                init_layer = getattr(initial_model.intermediate_layers, layer_key)
-
-                Delta_W = (model.width ** (-model.a[l - 1])) * (layer.weight.data - init_layer.weight.data)
-                Delta_b = layer.bias.data - init_layer.bias.data
-
-                init_contrib = init_layer.forward(initial_model.layer_scales[l - 1] * x)
-                update_contrib = F.linear(x, Delta_W, Delta_b)
-
-                inv_scale = 1.0 / update_contrib.abs().mean()
-                base_lrs.append(inv_scale.item())
-
-                x = model_.activation(init_contrib + inv_scale * update_contrib)  # should be Theta(1)
-
-            # output layer
-            Delta_W = (model.width ** (-model_.a[model_.n_layers - 1])) * (model_.output_layer.weight.data -
-                                                                           initial_model.output_layer.weight.data)
-            Delta_b = model_.output_layer.bias.data - initial_model.output_layer.bias.data
-
-            init_contrib = initial_model.output_layer.forward(initial_model.layer_scales[model_.n_layers - 1] * x)
-            update_contrib = F.linear(x, Delta_W, Delta_b)
-
-            # inv_scale = 1.0 / update_contrib.abs().mean()
-            inv_scale = 0.1 / update_contrib.abs().mean()
-            # inv_scale = 0.01 / update_contrib.abs().mean()
-
-            base_lrs.append(inv_scale.item())
-
-        print('initial base lr :', base_lrs)
-        return base_lrs
 
     def _set_param_group_lrs(self, base_lrs: Union[float, list] = None):
         if base_lrs is None:

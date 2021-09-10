@@ -122,10 +122,8 @@ class BaseIPLLRBias(BaseIP, BaseModel):
             except Exception as e:
                 raise Exception("Exception while trying to create the scheduler : {}".format(e))
 
-    def forward(self, x, normalize_first=True):
+    def forward(self, x):
         h = self.input_layer.forward((self.width ** (-self.a[0])) * x)  # h_0 first layer pre-activations
-        if normalize_first:
-            h = h / math.sqrt(self.d + 1)
         x = self.activation(h)  # x_0, first layer activations
 
         for l, layer in enumerate(self.intermediate_layers):  # L-1 intermediate layers
@@ -136,7 +134,13 @@ class BaseIPLLRBias(BaseIP, BaseModel):
 
         return self.output_layer.forward((self.width ** (-self.a[self.n_layers-1])) * x)  # f(x)
 
-    def training_step(self, batch, batch_nb):
-        out = super().training_step(batch, batch_nb)
-        self.scheduler.step()
-        return out
+    def optimizer_step(self, epoch: int, batch_idx: int, optimizer, optimizer_idx: int, second_order_closure=None,
+                       on_tpu: bool = False, using_native_amp: bool = False, using_lbfgs: bool = False):
+        """
+        Override base method `optimizer_step` from pytorch.Lightning to add scheduler step after every optimization step
+        (and not simply at every epoch).
+        :return:
+        """
+        super().optimizer_step(epoch, batch_idx, optimizer, optimizer_idx, second_order_closure, on_tpu,
+                               using_native_amp, using_lbfgs)
+        self.scheduler.step()  # take scheduler step right after optimization step
