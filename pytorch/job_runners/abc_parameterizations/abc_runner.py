@@ -132,10 +132,9 @@ class ABCRunner(JobRunner):
             logger.info('Model architecture :\n{}\n'.format(model))
 
             try:
-                # training and validation pipeline
                 trainer = pl.Trainer(max_epochs=self.max_epochs, max_steps=self.max_steps, logger=self.tb_logger,
                                      checkpoint_callback=self.checkpoint_callback, num_sanity_val_steps=0,
-                                     early_stop_callback=self.early_stopping_callback, gradient_clip_val=1.0)
+                                     early_stop_callback=self.early_stopping_callback)
                 trainer.fit(model=model, train_dataloader=self.train_data_loader, val_dataloaders=self.val_data_loader)
 
                 # test pipeline

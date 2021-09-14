@@ -24,7 +24,7 @@ def split_epoch_step_results(results, pop_keys=('lrs', 'all_losses')):
     return results, popped_results
 
 
-def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, batch_size, bias):
+def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, batch_size, bias, n_warmup_steps=None):
     """
     Loads the results from multiple trials of the same experiment defined by the choice of L, width, activation, lr,
     batch size, bias. Here we allow loading results for multiple experiments with different values for L and width.
@@ -40,6 +40,9 @@ def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, b
     :return:
     """
     res_dict = dict()
+    model_config = 'activation={}_lr={}_batchsize={}_bias={}'.format(activation, lr, batch_size, bias)
+    if n_warmup_steps is not None:
+        model_config += '_warmup={}'.format(n_warmup_steps)
     for L in Ls:
         res_dict[L] = dict()
         for width in widths:
@@ -49,7 +52,7 @@ def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, b
                     exp_dir,
                     base_exp,
                     'L={}_m={}'.format(L, width),
-                    'activation={}_lr={}_batchsize={}_bias={}'.format(activation, lr, batch_size, bias),
+                    model_config,
                     'trial_{}'.format(idx),
                     'results.pickle')
                 # print(results_path)
