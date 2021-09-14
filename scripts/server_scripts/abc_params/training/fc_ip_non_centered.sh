@@ -26,4 +26,4 @@ echo "Exporting python path for library wide-networks ..."
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 
 echo "Launching python script ..."
-python3 pytorch/jobs/abc_parameterizations/fc_ip_non_centered.py --activation=$activation --n_steps=$n_steps --dataset=$dataset
+python3 pytorch/jobs/abc_parameterizations/fc_ip_non_centered_run.py --activation=$activation --n_steps=$n_steps --dataset=$dataset
