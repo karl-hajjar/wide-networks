@@ -67,7 +67,7 @@ def squared_trace_rank(M: torch.Tensor, svd=True, eps=1e-9) -> float:
     return (eigenvalues.sum().item() ** 2) / ((eigenvalues ** 2).sum().item() + eps)
 
 
-def frob_spec_rank(M: torch.Tensor, svd=True) -> float:
+def frob_spec_rank(M: torch.Tensor, svd=True, eps=1e-9) -> float:
     """
     Returns a lower bound on the true rank of M as defined in Th 1.1 of https://arxiv.org/pdf/math/0503442v3.pdf.
     The lower bound returned is ||M||_F^2 / ||M||_op^2 where the numerator is the squared Frobenius norm and the
@@ -84,4 +84,20 @@ def frob_spec_rank(M: torch.Tensor, svd=True) -> float:
     else:
         S = torch.matmul(M.transpose(0, 1), M)
         eigenvalues, _ = torch.symeig(S, eigenvectors=False)
-    return eigenvalues.sum().item() / eigenvalues.max().item()
+    return eigenvalues.sum().item() / (eigenvalues.max().item() + eps)
+
+
+def cut_max_eig_rank(M: torch.Tensor, svd=True, tol=1e-3) -> float:
+    if svd:
+        _, s, _ = torch.svd(M, compute_uv=False)
+        eigenvalues = s ** 2
+    else:
+        S = torch.matmul(M.transpose(0, 1), M)
+        eigenvalues, _ = torch.symeig(S, eigenvectors=False)
+
+    rank = 0
+    max_eig = eigenvalues[0]  # eigenvalues are sorted by decreasing order
+    while (rank < len(eigenvalues)) and (eigenvalues[rank] > tol * max_eig):
+        rank += 1
+    return rank
+
