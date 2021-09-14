@@ -3,9 +3,6 @@ from pytorch.models.base_model import BaseModel
 from pytorch.schedulers import WarmupSwitchLRBias
 from utils.nn import get_standard_mf_lr_exponents
 
-import torch
-import math
-
 
 class BaseIPLLRBias(BaseIP, BaseModel):
     """
@@ -27,7 +24,7 @@ class BaseIPLLRBias(BaseIP, BaseModel):
          - c[0] = -1, c[l] = -2 for l in [1, L-1], c[L] = -1 if t >= n_warmup_steps
         For the biases:
          - c[l] = -(L - (l+1) + 2) / 2 for l in [0, L-1], c[L] = 0 if t < n_warmup_steps
-         - c[0] = -1, c[l] = -2 for l in [1, L-1], c[L] = -1 if t >= n_warmup_steps
+         - c[0] = -1, c[l] = -1 for l in [1, L-1], c[L] = 0 if t >= n_warmup_steps
         :param config: the configuration to define the network (architecture, loss, optimizer)
         :param width: the common width (number of neurons) of all layers except the last.
         :param n_warmup_steps: the number of optimization steps to take with the initial learning rates before switching
@@ -67,7 +64,7 @@ class BaseIPLLRBias(BaseIP, BaseModel):
         if 'scale_bias_lr' in config.keys():
             self.scale_bias_lr = config["scale_bias_lr"]
         else:
-            self.scale_bias_lr = False
+            self.scale_bias_lr = True
 
     def _set_n_warmup_steps(self, scheduler_config, n_warmup_steps):
         """
@@ -127,8 +124,8 @@ class BaseIPLLRBias(BaseIP, BaseModel):
         x = self.activation(h)  # x_0, first layer activations
 
         for l, layer in enumerate(self.intermediate_layers):  # L-1 intermediate layers
-            # by putting the scaling factor in the input x, we prevent the bias from being scaled as well, which is the
-            # desired effect
+            # by putting the scaling factor in the input x, we effectively prevent the bias from being scaled as well,
+            # which is the desired effect
             h = layer.forward((self.width ** (-self.a[l+1])) * x)  # h_l, layer l pre-activations
             x = self.activation(h)  # x_l, l-th layer activations
 
