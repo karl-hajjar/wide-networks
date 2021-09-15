@@ -197,13 +197,19 @@ class WarmupSwitchLRBias(WarmupSwitchLR):
             base_lrs = [base_lrs] * len(self.initial_lrs)
 
         for i, param in enumerate(self.optimizer.param_groups):
-            if 'weight' in param['name']:
-                param['lr'] = base_lrs[i] * self.current_lrs[i]
-            elif 'bias' in param['name']:
-                param['lr'] = self.base_lr * self.current_bias_lrs[i - len(self.current_lrs)]
+            name = param['name']
+            l = self._get_layer_from_param_name(name)
+            if 'weight' in name:
+                param['lr'] = base_lrs[l-1] * self.current_lrs[l-1]
+            elif 'bias' in name:
+                param['lr'] = self.base_lr * self.current_bias_lrs[l-1]
             else:
-                raise ValueError("param name dit not contain 'weight' nor 'bias' in param group {:,} of optimizer".
+                raise ValueError("param name dit not contain 'weight' or 'bias' in param group {:,} of optimizer".
                                  format(i))
+
+    @staticmethod
+    def _get_layer_from_param_name(name: str) -> int:
+        return int(name.split('_')[1])
 
     def step(self):
         self._last_lrs = self.current_lrs
@@ -221,7 +227,8 @@ class WarmupSwitchLRBias(WarmupSwitchLR):
 SCHED_DICT = {'step_lr': torch.optim.lr_scheduler.StepLR,
               'exp_lr': torch.optim.lr_scheduler.ExponentialLR,
               'cosine_lr': torch.optim.lr_scheduler.CosineAnnealingLR,
-              'warmup_switch': WarmupSwitchLR}
+              'warmup_switch': WarmupSwitchLR,
+              'warmup_switch_bias': WarmupSwitchLRBias}
 DEFAULT_SCHED = None
 
 

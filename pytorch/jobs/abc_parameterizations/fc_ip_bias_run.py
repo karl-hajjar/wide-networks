@@ -11,11 +11,12 @@ FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(FILE_DIR)))  # go back 3 times from this directory
 CONFIG_PATH = os.path.join(ROOT, 'pytorch/configs/abc_parameterizations')
 EXPERIMENTS_DIR = 'experiments'
-MODEL_NAME = 'fc_ipllr'
-CONFIG_FILE = 'fc_ipllr.yaml'
+MODEL_NAME = 'fc_ipllr_bias'
+CONFIG_FILE = 'fc_ipllr'
+CALIBRATE_BASE_LR = False
 
 N_TRIALS = 5
-Ls = [6]  # n_layers - 1
+Ls = [6]  # n_layers = L + 1
 WIDTHS = [1024]
 N_WARMUP_STEPS = 1
 
@@ -35,7 +36,8 @@ N_WARMUP_STEPS = 1
               help='Whether to download the data or not')
 def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="mnist", download=False):
     model_name = '{}_{}'.format(MODEL_NAME, dataset)
-    config_path = os.path.join(CONFIG_PATH, '{}.yaml'.format(model_name))
+    config_file = '{}_{}.yaml'.format(CONFIG_FILE, dataset)
+    config_path = os.path.join(CONFIG_PATH, config_file)
     config_dict = read_yaml(config_path)
 
     # define corresponding directory in experiments folder
@@ -68,14 +70,13 @@ def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="m
             config_dict['activation']['name'] = activation
             config_dict['training']['n_steps'] = n_steps
             config_dict['training']['batch_size'] = batch_size
-            config_dict['scheduler'] = {'name': 'warmup_switch',
+            config_dict['scheduler'] = {'name': 'warmup_switch_bias',
                                         'params': {'n_warmup_steps': N_WARMUP_STEPS,
-                                                   'calibrate_base_lr': True,
-                                                   'default_calibration': False}}
+                                                   'calibrate_base_lr': CALIBRATE_BASE_LR}}
 
-            runner = ABCRunner(config_dict, base_experiment_path, model=FcIPLLR, train_dataset=training_dataset,
+            runner = ABCRunner(config_dict, base_experiment_path, model=FcIPLLRBias, train_dataset=training_dataset,
                                test_dataset=test_dataset, val_dataset=val_dataset, early_stopping=False,
-                               n_trials=N_TRIALS, calibrate_base_lr=True)
+                               n_trials=N_TRIALS, calibrate_base_lr=CALIBRATE_BASE_LR)
             runner.run(n_warmup_steps=N_WARMUP_STEPS)
 
 
