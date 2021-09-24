@@ -22,7 +22,7 @@ reads from a yaml config file which defines all the necessary objects for a NN (
 the class ModelConfig is here so that one only has to set the yaml config file properly and then the attributes are correctly 
 populated in BaseModel via the class ModelConfig.
 
-The code for abc-parameterizations can be found in *pytorch/abc_params*. There, we define the base class for abc-parameterizations,
+The code for abc-parameterizations ([Yang & Hu 2021](https://arxiv.org/pdf/2011.14522.pdf)) can be found in *pytorch/abc_params*. There, we define the base class for abc-parameterizations,
 mainly setting the layer, init and lr scales from the values of *a,b,c*, as well as defining the initial parameters through Gaussians
 of appropriate variance depending on the value of *b* and the activation function. All that is architecture specific (fully-connected,
 conv, residual, etc) is left out of this base class and has to be implemented in the _build_model() method of the child 
@@ -50,7 +50,7 @@ library to the PYTHONPATH by running the command
 ```bash
 export PYTHONPATH=$PYTHONPATH:"$PWD"
 ```
-from the main directory (wide-networks/.) of where the wide-networks library is located. 
+from the root directory (wide-networks/.) of where the wide-networks library is located. 
  
 ### Python jobs
 We define python jobs which can be run with arguments from the command line in the directory *jobs*. Mainly, those jobs 
