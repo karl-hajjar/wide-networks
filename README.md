@@ -30,6 +30,29 @@ class (see examples in *pytorch/abc_params/fully_connected*). We also define the
 ip and ipllr parameterizations, and there fully-connected implementations in *pytorch/abc_params/fully_connected*.
 
 ## Experiment runs
+
+### Setup
+Before running any experiment, make sure you first install all the necessary packages:
+````bash
+pip3 install -r requirements.txt
+````
+You can optionally create a virtual environment through 
+```bash
+python3 -m venv your_env_dir
+```   
+then activate it with 
+````bash
+source your_env_dir/bin/activate
+````
+and then install the requirements once the environment is activated. Now, if you haven't installed the **wide-networks**
+library in site-packages, before running the command for your experiment, make sure you first add the wide-networks 
+library to the PYTHONPATH by running the command
+```bash
+export PYTHONPATH=$PYTHONPATH:"$PWD"
+```
+from the main directory (wide-networks/.) of where the wide-networks library is located. 
+ 
+### Python jobs
 We define python jobs which can be run with arguments from the command line in the directory *jobs*. Mainly, those jobs 
 launch a training / val / test pipeline for a given model using the Lightning module, and the results are collected in a 
 dictionary which is saved to a pickle file a the end of training for later examination. Additionally, metrics are logged 
