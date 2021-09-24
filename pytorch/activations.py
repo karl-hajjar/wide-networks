@@ -9,6 +9,8 @@ ACTIVATION_DICT = {'relu': torch.nn.ReLU,
                    'identity': torch.nn.Identity}
 DEFAULT_ACTIVATION = "relu"
 
+# TODO: add squared ReLU by defining custom module similar to torch.nn.ReLU
+
 
 def get_activation(activation=None):
     if activation is None:
