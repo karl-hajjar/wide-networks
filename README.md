@@ -6,25 +6,36 @@ Although an equivalent description can be given using only ac-parameterizations,
 code to allow more flexibility depending on how we want to approach the problem of dealing with infinitely wide NNs.
 
 ## Structure of the code
+
+### The BaseModel class
 All the code related to neural networks is in the directory *pytorch*. The different models we have implemented are in 
 this directory along with the base class found in the file *base_model.py* which implements the generic attributes and 
-methods all our NNs classes will share. The BaseModel class inherits from the [Pytorch Lightning module](https://pytorch-lightning.readthedocs.io/en/latest/),
+methods all our NNs classes will share. 
+
+The BaseModel class inherits from the [Pytorch Lightning module](https://pytorch-lightning.readthedocs.io/en/latest/),
 and essentially defines the necessary attributes for any NN to work properly, namely the architecture (which is defined 
 in the _build_model() method), the activation function (we consider the same activation function at each layer), the loss 
-function, the optimizer and the initializer for the parameters of the network. Optionally, the BaseModel class can define
+function, the optimizer and the initializer for the parameters of the network. 
+
+Optionally, the BaseModel class can define
 attributes for the normalization (*e.g.* BatchNorm, LayerNorm, etc) and the scheduler, and any of the aforementioned attributes 
 (optional or not) can be customized depending on the needs (see examples for the scheduler of ipllr and the initializer 
 of abc_param).
 
+### The ModelConfig class
 All the hyper-parameters which define the model (depth, width, activation function name, loss name, optimizer name, etc)
 have to be passed as argument to \__init__() as an object of the class ModelConfig (*pytorch/configs/model.py*). This class
 reads from a yaml config file which defines all the necessary objects for a NN (see examples in *pytorch/configs*). Essentially,
 the class ModelConfig is here so that one only has to set the yaml config file properly and then the attributes are correctly 
 populated in BaseModel via the class ModelConfig.
 
-The code for abc-parameterizations ([Yang & Hu 2021](https://arxiv.org/pdf/2011.14522.pdf)) can be found in *pytorch/abc_params*. There, we define the base class for abc-parameterizations,
+
+### abc-parameterizations
+The code for abc-parameterizations ([Yang & Hu 2021](https://arxiv.org/pdf/2011.14522.pdf)) can be found in *pytorch/abc_params*. There we define the base class for abc-parameterizations,
 mainly setting the layer, init and lr scales from the values of *a,b,c*, as well as defining the initial parameters through Gaussians
-of appropriate variance depending on the value of *b* and the activation function. All that is architecture specific (fully-connected,
+of appropriate variance depending on the value of *b* and the activation function. 
+
+Everything that is architecture specific (fully-connected,
 conv, residual, etc) is left out of this base class and has to be implemented in the _build_model() method of the child 
 class (see examples in *pytorch/abc_params/fully_connected*). We also define there the base classes for the ntk, muP ([Yang & Hu 2021](https://arxiv.org/pdf/2011.14522.pdf)),
 ip and ipllr parameterizations, and there fully-connected implementations in *pytorch/abc_params/fully_connected*.
