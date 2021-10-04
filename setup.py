@@ -15,6 +15,7 @@ setuptools.setup(
     url='https://github.com/karl-hajjar/wide-networks.git',
     license='MIT',
     packages=['.'],
+    python_requires='3.6',
     install_requires=['Click',
                       'clickclick',
                       'flask',
