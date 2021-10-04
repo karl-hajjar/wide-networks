@@ -1,4 +1,4 @@
-# WIDE-NETWORKS
+# Wide-Networks
 
 This repository contains the code of various experiments on wide neural networks.
 In particular, we implement classes for abc-parameterizations of NNs as defined by [(Yang & Hu 2021)](https://arxiv.org/pdf/2011.14522.pdf).
@@ -80,7 +80,7 @@ python3 jobs/abc_parameterizations/fc_muP_run.py --activation="relu" --n_steps=6
 ```` 
 will launch a training / val / test pipeline with ReLU as the activation function, 600 SGD steps and the MNIST dataset. 
 The other parameters of the run (*e.g.* the base learning rate and batch size) will have their default values. The jobs
-will automatically create a directory (and potentially subdirectories) for the experiment and save their the python logs,
+will automatically create a directory (and potentially subdirectories) for the experiment and save there the python logs,
 the tensorboard events and the results dictionary saved to a pickle file as well as the checkpoints saved for the network.
 
 ## Visualizing results
