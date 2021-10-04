@@ -5,18 +5,16 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name='wide-networks',
+    distname='',
     version='0.1.0',
     author='Karl Hajjar',
     author_email='karl.hajjar@polytechnique.edu',
-    description='wide-networks python package',
+    description='Wide networks python library',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/karl-hajjar/wide-networks.git',
-    project_urls={
-        "wide-networks": "https://github.com/karl-hajjar/wide-networks.git"
-    },
     license='MIT',
-    packages=['wide-networks'],
+    packages=['.'],
     install_requires=['Click',
                       'clickclick',
                       'flask',
