@@ -9,7 +9,6 @@ pyyaml
 scikit-learn
 matplotlib
 seaborn
-# torch
 pytorch
 torchvision
 pytorch-lightning==0.8.5
