@@ -1,6 +1,7 @@
 # Wide-Networks
 
-This repository contains the code of various experiments on wide neural networks.
+This repository contains the code of various experiments on wide neural networks used in the paper [**Training Integrable
+Parameterizations of Deep Neural Networks in the Infinite-Width Limit**](https://arxiv.org/abs/2110.15596#).
 In particular, we implement classes for abc-parameterizations of NNs as defined by [(Yang & Hu 2021)](https://arxiv.org/pdf/2011.14522.pdf).
 Although an equivalent description can be given using only ac-parameterizations, we keep the 3 scales (a, b and c) in the 
 code to allow more flexibility depending on how we want to approach the problem of dealing with infinitely wide NNs.
