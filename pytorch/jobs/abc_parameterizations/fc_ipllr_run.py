@@ -15,7 +15,7 @@ MODEL_NAME = 'fc_ipllr'
 CONFIG_FILE = 'fc_ipllr.yaml'
 
 N_TRIALS = 5
-Ls = [6]  # n_layers - 1
+Ls = [6]  # Total depth n_layers = L + 1
 WIDTHS = [1024]
 N_WARMUP_STEPS = 1
 
@@ -58,7 +58,8 @@ def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="m
 
     # prepare data
     training_dataset, test_dataset = load_data(download=download, flatten=True)
-    val_dataset = deepcopy(training_dataset)  # copy train_data into validation_data
+    # val_dataset = deepcopy(training_dataset)  # copy train_data into validation_data
+    val_dataset = deepcopy(test_dataset)  # copy test_data into validation_data to keep track of test loss
 
     for L in Ls:
         for width in WIDTHS:

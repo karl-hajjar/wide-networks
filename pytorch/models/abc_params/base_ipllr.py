@@ -14,7 +14,7 @@ class BaseIPLLR(BaseIP):
     def __init__(self, config, width: int = None, n_warmup_steps: int = 1, lr_calibration_batches: list = None):
         """
         Base class for the IP-LLR parameterization with L hidden layers where the initial learning rates are large and
-        then switched to the the learning rates of standard Mean Field models after a certain number n_warmup_steps of
+        then switched to the learning rates of standard Mean Field models after a certain number n_warmup_steps of
         optimization steps:
          - a[0] = 0, a[l] = 1 for l in [1, L]
          - b[l] = 0, for any l in [0, L]

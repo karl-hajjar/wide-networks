@@ -1,16 +1,13 @@
 Click
 clickclick
-flask
-fastapi
 pandas
 numpy
 dateparser
 pyyaml
-scikit-learn
 matplotlib
 seaborn
 torch
 torchvision
 pytorch-lightning==0.8.5
 tensorboard==2.2.2
-tensorflow
+notebook
