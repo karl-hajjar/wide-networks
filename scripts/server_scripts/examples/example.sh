@@ -17,8 +17,8 @@
 
 echo $PWD
 
-echo "Loading anaconda module"
-module load anaconda/2020.07  # load anaconda module
+# echo "Loading anaconda module"
+# module load anaconda/2020.07  # load anaconda module
 
 echo "Activating virtualenv"
 source activate karl-wide  # activate the virtual environment
