@@ -18,7 +18,7 @@ echo "Loading anaconda ..."
 module load anaconda/2020.07  # load anaconda module
 
 echo "Activating virtualenv ..."
-source activate karl-wide  # activate the virtual environment
+source activate hajjar-wide  # activate the virtual environment
 
 echo "Exporting python path for library wide-networks ..."
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
