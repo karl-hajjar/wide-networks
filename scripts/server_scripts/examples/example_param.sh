@@ -1,6 +1,4 @@
 #!/bin/bash
 
-echo "Running sbatch with arguments word='Karl'"
-# sbatch --export=word="Karl" scripts/server_scripts/examples/example.sh
-# sbatch scripts/server_scripts/examples/example.sh
-sbatch scripts/server_scripts/examples/example.sh -word="Karl"
+echo "Running sbatch with arguments n=3 and word='Karl'"
+sbatch scripts/server_scripts/examples/example.sh 3 "Karl"
