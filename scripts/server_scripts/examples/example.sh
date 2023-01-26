@@ -33,4 +33,5 @@ export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 # --mem=MB permet de définir le taille minimale de mémoire pour chaque processus.
 
 echo "Launching Python script from bash with srun"
-srun -N=4 python3 scripts/server_scripts/examples/toy_python_script.py --n=5 --word="Karl"
+# srun -N4 python3 scripts/server_scripts/examples/toy_python_script.py --n=5 --word="Karl"
+srun python3 scripts/server_scripts/examples/toy_python_script.py --n=5 --word="Karl"
