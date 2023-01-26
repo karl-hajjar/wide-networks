@@ -22,7 +22,7 @@ echo $PWD
 module load anaconda  # load anaconda module
 
 echo "Activating virtualenv"
-source activate hajjar-wide  # activate the virtual environment
+source activate karl-wide  # activate the virtual environment
 
 echo "Exporting python path"
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path

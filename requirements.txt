@@ -2,7 +2,7 @@ Click
 clickclick
 protobuf==3.20.1
 pandas
-numpy  # server version 1.19.2
+numpy==1.19.2  # server version 1.19.2
 dateparser
 pyyaml
 matplotlib
