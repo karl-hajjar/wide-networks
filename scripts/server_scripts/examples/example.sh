@@ -17,10 +17,6 @@
 
 echo $PWD
 
-# echo "Loading anaconda module"
-# module load anaconda/2020.07  # load anaconda module
-# module load anaconda  # load anaconda module
-
 echo "Activating virtualenv"
 source activate karl-wide  # activate the virtual environment
 
@@ -35,4 +31,4 @@ export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 
 echo "Launching Python script from bash with srun"
 # srun -N4 python3 scripts/server_scripts/examples/toy_python_script.py --n=5 --word="Karl"
-srun python3 scripts/server_scripts/examples/toy_python_script.py --n=5 --word="Karl"
+srun -N4 python3 scripts/server_scripts/examples/toy_python_script.py --n=5 --word="Karl"
