@@ -5,6 +5,7 @@ __pycache__/
 
 # server scitps output
 *.std*
+slurm-*.out
 
 # C extensions
 *.so
