@@ -1,22 +1,19 @@
 #!/bin/bash
 
-# Définition de l'environnement parallèle (4 ici pour 4 coeurs) :
-#$ -pe make 16
+# -- Nom du calcul, répertoire de travail :
+#SBATCH --job-name=karl-example
+#SBATCH --chdir=/workdir2/hajjar/projects/wide-networks/
 
-# Nom du calcul, répertoire de travail :
-#$ -N "example"
-#$ -wd /workdir2/hajjar/projects/wide-networks
+# -- Optionnel, pour être notifié par email :
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --mail-user=hajjarkarl@gmail.com
 
-# Optionnel, être notifié par email :
-#$ -m abe
-#$ -M hajjarkarl@gmail.com
+# -- Sortie standard et d'erreur dans le fichier .output :
+#SBATCH --output=./%j.stdout
+#SBATCH --error=./%j.stderr
 
-#$ -e error.txt
-#$ -o output.txt
-#$ -j y
-
-# n, x and comment arguments are given with qsub cmd:
-# qsub -v n=5,x=2.0,comment="Test script" script.sh
+# -- Contexte matériel
+#SBATCH --nodes=10
 
 echo $PWD
 
@@ -29,10 +26,11 @@ source activate karl-wide  # activate the virtual environment
 echo "Exporting python path"
 export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 
-# how to use arguments with qsub
-# python3 scripts/server_scripts/toy_python_script.py --n=$n --word=$word
-# qsub -v n=4,word="Ja" scripts/server_scripts/example.sh  ## (no space between the arguments separated by comma)
 
-echo "Launching Python script from bash"
-python3 scripts/server_scripts/examples/toy_python_script.py --n=5 --word="Karl"
+# -N permet de spécifier le nombre minimum de nœuds (i.e. machine) sur lesquels lancer la commande.
+# --nodelist=... permet de spécifier les nœuds à utiliser.
+# --gpus=n permet de définir le nombre de gpus à utiliser. --mem-per-gpu=n pour donner la mémoire minimum pour chaque gpu.
+# --mem=MB permet de définir le taille minimale de mémoire pour chaque processus.
 
+echo "Launching Python script from bash with srun"
+srun -N=4 python3 scripts/server_scripts/examples/toy_python_script.py --n=5 --word="Karl"

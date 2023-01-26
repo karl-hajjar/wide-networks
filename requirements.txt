@@ -1,7 +1,7 @@
 Click
 clickclick
 pandas
-numpy
+numpy  # server version 1.19.2
 dateparser
 pyyaml
 matplotlib
