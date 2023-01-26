@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# server scitps output
+*.std*
+
 # C extensions
 *.so
 
