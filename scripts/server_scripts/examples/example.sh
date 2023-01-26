@@ -29,7 +29,7 @@ export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 # --gpus=n permet de définir le nombre de gpus à utiliser. --mem-per-gpu=n pour donner la mémoire minimum pour chaque gpu.
 # --mem=MB permet de définir le taille minimale de mémoire pour chaque processus.
 
-echo "Env var word=$word"
+# echo "Env var word=$word"
 echo "Launching Python script from bash with srun WITHOUT ARGS..."
 srun -N4 python3 scripts/server_scripts/examples/toy_python_script.py --n=2 --word="Karl0"
 
