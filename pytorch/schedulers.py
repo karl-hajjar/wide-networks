@@ -124,7 +124,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
 
                 # inv_scale = 1.0 / update_contrib.abs().mean()
                 inv_scale = self.CALIBRATION_SCALE * math.sqrt(model_.width) / \
-                            torch.linalg.vector_norm(update_contrib, ord=2, dim=1).mean()
+                            torch.norm(update_contrib, p=2, dim=1).mean()
                 base_lrs.append(min(inv_scale.item(), self.MAX_BASE_LR))
 
                 x = model_.activation(init_contrib + inv_scale * update_contrib)  # should be Theta(1)
@@ -138,7 +138,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
 
             # inv_scale = 0.1 / update_contrib.abs().mean()
             inv_scale = self.CALIBRATION_SCALE * math.sqrt(model_.width) / \
-                        torch.linalg.vector_norm(update_contrib, ord=2, dim=1).mean()
+                        torch.norm(update_contrib, p=2, dim=1).mean()
 
             base_lrs.append(min(inv_scale.item(), self.MAX_BASE_LR))
 
