@@ -123,7 +123,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
                 update_contrib = F.linear(x, Delta_W)
 
                 # inv_scale = 1.0 / update_contrib.abs().mean()
-                inv_scale = self.CALIBRATION_SCALE * math.sqrt(model_.width) / \
+                inv_scale = self.base_lr * math.sqrt(model_.width) / \
                             torch.norm(update_contrib, p=2, dim=1).mean()
                 base_lrs.append(min(inv_scale.item(), self.MAX_BASE_LR))
 
@@ -137,7 +137,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             update_contrib = F.linear(x, Delta_W)
 
             # inv_scale = 0.1 / update_contrib.abs().mean()
-            inv_scale = self.CALIBRATION_SCALE * math.sqrt(model_.width) / \
+            inv_scale = self.base_lr * math.sqrt(model_.width) / \
                         torch.norm(update_contrib, p=2, dim=1).mean()
 
             base_lrs.append(min(inv_scale.item(), self.MAX_BASE_LR))
