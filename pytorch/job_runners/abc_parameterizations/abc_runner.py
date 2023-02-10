@@ -113,7 +113,10 @@ class ABCRunner(JobRunner):
         # TODO: if os.path.exists(self.trial_dir), read lines of corresponding log file and check if last line has
         #  "test" in it. If not, re-run the trial because it means there was a problem with the run.
 
-        if not os.path.exists(self.trial_dir):  # run trial only if it doesn't already exist
+        if os.path.exists(self.trial_dir):
+            logging.warning("Directory for trial {:,} of experiment {} already exists".format(idx, self.model_config))
+
+        else:  # run trial only if it doesn't already exist
             create_dir(self.trial_dir)  # directory to save the trial
             set_random_seeds(self.trial_seeds[idx])  # set random seed for the trial
 
@@ -142,7 +145,9 @@ class ABCRunner(JobRunner):
                 logger.info('Test results :\n{}\n'.format(test_results))
 
                 # save all training, val and test results to pickle file
-                with open(os.path.join(self.trial_dir, self.RESULTS_FILE), 'wb') as file:
+                results_path = os.path.join(self.trial_dir, self.RESULTS_FILE)
+                logging.info("Dumping results at {}".format(results_path))
+                with open(results_path, 'wb') as file:
                     pickle.dump(model.results, file)
 
             except Exception as e:
@@ -152,9 +157,6 @@ class ABCRunner(JobRunner):
                 logger.warning('model results dumped before interruption')
                 logger.exception("Exception while running the train-val-test pipeline : {}".format(e))
                 raise Exception(e)
-
-        else:
-            logging.warning("Directory for trial {:,} of experiment {} already exists".format(idx, self.model_config))
 
     def _set_tb_logger_and_callbacks(self, trial_name):
         """
