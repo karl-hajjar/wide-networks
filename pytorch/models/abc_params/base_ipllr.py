@@ -52,7 +52,9 @@ class BaseIPLLR(BaseIP):
             self.n_warmup_steps = n_warmup_steps
 
     def _set_scheduler(self, scheduler_config=None):
-        if not hasattr(scheduler_config, "params"):
+        if scheduler_config is None:
+            self.scheduler = None
+        elif not hasattr(scheduler_config, "params"):
             self.scheduler = WarmupSwitchLR(self.optimizer, initial_lrs=self.lr_scales, warm_lrs=self.warm_lrs,
                                             base_lr=self.base_lr, model=self, batches=self.lr_calibration_batches)
         else:
@@ -74,4 +76,5 @@ class BaseIPLLR(BaseIP):
         """
         super().optimizer_step(epoch, batch_idx, optimizer, optimizer_idx, second_order_closure, on_tpu,
                                using_native_amp, using_lbfgs)
-        self.scheduler.step()  # take scheduler step right after optimization step
+        if self.scheduler is not None:
+            self.scheduler.step()  # take scheduler step right after optimization step

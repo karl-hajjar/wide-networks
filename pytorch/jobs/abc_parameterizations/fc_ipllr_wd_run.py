@@ -17,7 +17,6 @@ CONFIG_FILE = 'fc_ipllr.yaml'
 N_TRIALS = 5
 Ls = [6]  # Total depth n_layers = L + 1
 WIDTHS = [1024]
-N_WARMUP_STEPS = 1
 
 
 @click.command()
@@ -69,19 +68,17 @@ def run(activation="relu", n_steps=300, base_lr=0.01, weight_decay=0.01, batch_s
             config_dict['architecture']['width'] = width
             config_dict['architecture']['n_layers'] = L + 1
             config_dict['optimizer']['params']['lr'] = base_lr
-            config_dict['optimizer']['params']['weight_decay'] = weight_decay
+            config_dict['optimizer']['params']['weight_decay'] = weight_decay / width
             config_dict['activation']['name'] = activation
             config_dict['training']['n_steps'] = n_steps
             config_dict['training']['batch_size'] = batch_size
-            config_dict['scheduler'] = {'name': 'warmup_switch',
-                                        'params': {'n_warmup_steps': N_WARMUP_STEPS,
-                                                   'calibrate_base_lr': True,
-                                                   'default_calibration': False}}
+            if 'scheduler' in config_dict.keys():  # no scheduler when using weight decay
+                config_dict.pop('scheduler')
 
             runner = ABCRunner(config_dict, base_experiment_path, model=FcIPLLR, train_dataset=training_dataset,
                                test_dataset=test_dataset, val_dataset=val_dataset, early_stopping=False,
-                               n_trials=N_TRIALS, calibrate_base_lr=True)
-            runner.run(n_warmup_steps=N_WARMUP_STEPS)
+                               n_trials=N_TRIALS, calibrate_base_lr=False)
+            runner.run()
 
 
 if __name__ == '__main__':

@@ -28,6 +28,8 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         self.n_warmup_steps = n_warmup_steps
         self.base_lr = base_lr
         self.CALIBRATION_SCALE = self.base_lr
+        if model.activation.name == "relu":
+            self.CALIBRATION_SCALE = 0.5
 
         self.current_lrs = initial_lrs
         self._last_lrs = None
