@@ -25,6 +25,12 @@ class BaseModel(LightningModule):
         super(BaseModel, self).__init__()
         self._check_config(config)
         self._name = config.name
+
+        # define hparams for later logging
+        self.hparams = config.dict()
+        self.save_hyperparameters(config.dict())
+
+        # set model attributes from config
         self._set_activation(config.activation)
         self._set_normalization(config.normalization)
         self._set_loss(config.loss)
@@ -36,10 +42,6 @@ class BaseModel(LightningModule):
         else:  # only set the optimizer if some parameters have been already defined
             self._set_optimizer(config.optimizer)
         self._set_scheduler(config.scheduler)
-
-        # define hparams for later logging
-        self.hparams = config.dict()
-        self.save_hyperparameters(config.dict())
 
         # define an attribute to hold all the history of train/val/test metrics for later plotting /analysing
         self.results = {'training': [], 'validation': [], 'test': []}

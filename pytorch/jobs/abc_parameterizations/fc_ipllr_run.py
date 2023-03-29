@@ -14,7 +14,10 @@ EXPERIMENTS_DIR = 'experiments'
 MODEL_NAME = 'fc_ipllr'
 CONFIG_FILE = 'fc_ipllr.yaml'
 
+# N_TRIALS = 5
+# N_TRIALS = 2
 N_TRIALS = 5
+# Ls = [6]  # Total depth n_layers = L + 1
 Ls = [6]  # Total depth n_layers = L + 1
 WIDTHS = [1024]
 N_WARMUP_STEPS = 1
@@ -25,7 +28,9 @@ N_WARMUP_STEPS = 1
               help='Which activation function to use for the network')
 @click.option('--n_steps', '-N', required=False, type=click.INT, default=300,
               help='How many steps of SGD to take')
-@click.option('--base_lr', '-lr', required=False, type=click.FLOAT, default=0.01,
+# @click.option('--base_lr', '-lr', required=False, type=click.FLOAT, default=0.01,
+#               help='Which learning rate to use')
+@click.option('--base_lr', '-lr', required=False, type=click.FLOAT, default=1.0352,
               help='Which learning rate to use')
 @click.option('--batch_size', '-bs', required=False, type=click.INT, default=512,
               help='What batch size to use')

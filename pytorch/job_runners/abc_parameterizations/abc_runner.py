@@ -19,13 +19,16 @@ class ABCRunner(JobRunner):
     A class to run an experiment with an abc-parameterization on a given dataset.
     """
 
-    MAX_EPOCHS = 15
-    MAX_STEPS = int(1.5e3)
+    MAX_EPOCHS = 30
+    MAX_STEPS = int(1.5e5)
     BASE_LR = 0.001
 
     def __init__(self, config_dict: dict, base_experiment_path: str, model: BaseABCParam, train_dataset: Dataset,
                  test_dataset: Dataset, val_dataset: Dataset = None, train_ratio: float = 0.8, n_trials: int = 10,
                  early_stopping=False, calibrate_base_lr=False):
+        set_random_seeds(self.SEED)  # set random seed for reproducibility
+        self.trial_seeds = np.random.randint(0, 100, size=n_trials)  # define random seeds to use for each trial
+
         self.width = config_dict['architecture']['width']
         self.batch_size = config_dict['training']['batch_size']
         self._set_base_lr(config_dict)
@@ -61,9 +64,6 @@ class ABCRunner(JobRunner):
             self.early_stopping = early_stopping
 
         self.early_stopping_callback = False  # this is modified in _set_tb_logger_and_callbacks in early_stopping=True
-
-        set_random_seeds(self.SEED)  # set random seed for reproducibility
-        self.trial_seeds = np.random.randint(0, 100, size=n_trials)  # define random seeds to use for each trial
 
     def _set_model_version(self, config_dict):
         # recall L is the number of HIDDEN layers
@@ -117,7 +117,8 @@ class ABCRunner(JobRunner):
         #  "test" in it. If not, re-run the trial because it means there was a problem with the run.
 
         if os.path.exists(self.trial_dir):
-            logging.warning("Directory for trial {:,} of experiment {} already exists".format(idx, self.model_config))
+            logging.warning("Directory for trial {:,} of experiment {} already exists".format(idx + 1,
+                                                                                              self.model_config))
 
         else:  # run trial only if it doesn't already exist
             create_dir(self.trial_dir)  # directory to save the trial
