@@ -21,6 +21,7 @@ N_TRIALS = 5
 Ls = [6]  # Total depth n_layers = L + 1
 WIDTHS = [1024]
 N_WARMUP_STEPS = 1
+LR_DECAY = 0.75
 
 
 @click.command()
@@ -78,6 +79,8 @@ def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="m
                                         'params': {'n_warmup_steps': N_WARMUP_STEPS,
                                                    'calibrate_base_lr': True,
                                                    'default_calibration': False}}
+            if activation == "relu":
+                config_dict['scheduler']['params']['lr_decay'] = LR_DECAY
 
             runner = ABCRunner(config_dict, base_experiment_path, model=FcIPLLR, train_dataset=training_dataset,
                                test_dataset=test_dataset, val_dataset=val_dataset, early_stopping=False,

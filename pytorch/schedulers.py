@@ -18,10 +18,11 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
     MAX_BASE_LR = 1000.0
     CALIBRATION_SCALE = 1.0
 
-    def __init__(self, optimizer, initial_lrs, warm_lrs, n_warmup_steps=1, base_lr=0.01, last_epoch=-1,
+    def __init__(self, optimizer, initial_lrs, warm_lrs, n_warmup_steps=1, base_lr=0.01, last_epoch=-1, lr_decay=None,
                  calibrate_base_lr=True, model=None, batches=None, default_calibration=False):
         self._check_lrs(optimizer, initial_lrs, warm_lrs)
         self._check_warmup_steps(n_warmup_steps)
+        self._set_lr_decay(lr_decay)
 
         self.initial_lrs = initial_lrs
         self.warm_lrs = warm_lrs
@@ -54,7 +55,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         else:
             self.initial_base_lrs = self.base_lr
 
-        self._set_param_group_lrs(self.initial_base_lrs)
+        self.set_param_group_lrs(self.initial_base_lrs)
 
     @staticmethod
     def _check_lrs(optimizer, initial_lrs, warm_lrs):
@@ -70,6 +71,14 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
             raise TypeError("`n_warmup_steps` argument must be of type int")
         if n_warmup_steps <= 0:
             raise ValueError("`n_warmup_steps` argument must be > 0")
+
+    def _set_lr_decay(self, lr_decay):
+        if lr_decay in [None, 0.]:
+            self.lr_decay = None
+        elif (type(lr_decay)==float) and (lr_decay > 0.0) and (lr_decay <= 1.0):
+            self.lr_decay = lr_decay
+        else:
+            raise ValueError("`lr_decay` argument must be a float in (0, 1] but was {}".format(lr_decay))
 
     # @staticmethod
     def calibrate_base_lr(self, model, batches):
@@ -150,7 +159,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         logging.info('initial base lrs : {}'.format(base_lrs))
         return base_lrs
 
-    def _set_param_group_lrs(self, base_lrs: Union[float, list] = None):
+    def set_param_group_lrs(self, base_lrs: Union[float, list] = None):
         if base_lrs is None:
             base_lrs = [self.base_lr] * len(self.initial_lrs)
         elif isinstance(base_lrs, float):
@@ -168,7 +177,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         # if n_warmup_steps is reached, switch to warm lrs
         if self._step_count == self.n_warmup_steps:  # _step_count starts at 1
             self.current_lrs = self.warm_lrs
-            self._set_param_group_lrs(self.base_lr)
+            self.set_param_group_lrs(self.base_lr)
 
         self._step_count += 1
 
@@ -201,7 +210,7 @@ class WarmupSwitchLRBias(WarmupSwitchLR):
                              "parameter groups but {:,} initial learning rates and {:,} warm learning rates".
                              format(n_param_groups, len(initial_lrs), len(warm_lrs)))
 
-    def _set_param_group_lrs(self, base_lrs: Union[float, list] = None):
+    def set_param_group_lrs(self, base_lrs: Union[float, list] = None):
         if base_lrs is None:
             base_lrs = [self.base_lr] * len(self.initial_lrs)
         elif isinstance(base_lrs, float):
@@ -230,7 +239,7 @@ class WarmupSwitchLRBias(WarmupSwitchLR):
         if self._step_count == self.n_warmup_steps:  # _step_count starts at 1
             self.current_lrs = self.warm_lrs
             self.current_bias_lrs = self.warm_bias_lrs
-            self._set_param_group_lrs(self.base_lr)
+            self.set_param_group_lrs(self.base_lr)
 
         self._step_count += 1
 

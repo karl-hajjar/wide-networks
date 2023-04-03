@@ -109,15 +109,15 @@ def main(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="
         logger.info('Recalibrating lrs with new initialisation')
         for ipllr in ipllrs_calib:
             initial_base_lrs = ipllr.scheduler.calibrate_base_lr(ipllr, batches=batches, normalize_first=False)
-            ipllr.scheduler._set_param_group_lrs(initial_base_lrs)
+            ipllr.scheduler.set_param_group_lrs(initial_base_lrs)
 
         for ipllr in ipllrs_calib_renorm:
             initial_base_lrs = ipllr.scheduler.calibrate_base_lr(ipllr, batches=batches, normalize_first=True)
-            ipllr.scheduler._set_param_group_lrs(initial_base_lrs)
+            ipllr.scheduler.set_param_group_lrs(initial_base_lrs)
 
         for ipllr in ipllrs_calib_renorm_scale_lr:
             initial_base_lrs = ipllr.scheduler.calibrate_base_lr(ipllr, batches=batches, normalize_first=True)
-            ipllr.scheduler._set_param_group_lrs(initial_base_lrs)
+            ipllr.scheduler.set_param_group_lrs(initial_base_lrs)
 
         # scale lr of first layer if needed
         for ipllr in ipllrs_calib_renorm_scale_lr:
