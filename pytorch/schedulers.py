@@ -16,7 +16,7 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
     DEFAULT_CALIBRATED_INITIAL_BASE_LR = 1.0
     # MAX_BASE_LR = 500
     MAX_BASE_LR = 1000.0
-    CALIBRATION_SCALE = 0.2
+    CALIBRATION_SCALE = 1.0
 
     def __init__(self, optimizer, initial_lrs, warm_lrs, n_warmup_steps=1, base_lr=0.01, last_epoch=-1,
                  calibrate_base_lr=True, model=None, batches=None, default_calibration=False):
@@ -28,11 +28,9 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
         self.n_warmup_steps = n_warmup_steps
         self.base_lr = base_lr
         if model.hparams["activation"]["name"] == "relu":
-            calib_scale = 1.0
-            logging.info("Setting calibration scale to {:.3f}".format(calib_scale))
+            calib_scale = 0.5
             self.CALIBRATION_SCALE = calib_scale
-        else:
-            self.CALIBRATION_SCALE = self.base_lr
+        logging.info("Setting calibration scale to {:.3f}".format(self.CALIBRATION_SCALE))
 
         self.current_lrs = initial_lrs
         self._last_lrs = None

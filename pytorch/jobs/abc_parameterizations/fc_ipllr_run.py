@@ -30,7 +30,7 @@ N_WARMUP_STEPS = 1
               help='How many steps of SGD to take')
 # @click.option('--base_lr', '-lr', required=False, type=click.FLOAT, default=0.01,
 #               help='Which learning rate to use')
-@click.option('--base_lr', '-lr', required=False, type=click.FLOAT, default=1.0352,
+@click.option('--base_lr', '-lr', required=False, type=click.FLOAT, default=0.09,
               help='Which learning rate to use')
 @click.option('--batch_size', '-bs', required=False, type=click.INT, default=512,
               help='What batch size to use')
