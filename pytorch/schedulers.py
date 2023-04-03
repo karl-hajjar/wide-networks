@@ -75,8 +75,9 @@ class WarmupSwitchLR(torch.optim.lr_scheduler._LRScheduler):
     def _set_lr_decay(self, lr_decay):
         if lr_decay in [None, 0.]:
             self.lr_decay = None
-        elif (type(lr_decay)==float) and (lr_decay > 0.0) and (lr_decay <= 1.0):
+        elif (type(lr_decay) == float) and (lr_decay > 0.0) and (lr_decay <= 1.0):
             self.lr_decay = lr_decay
+            logging.info("Setting lr decay to {:.3f}".format(lr_decay))
         else:
             raise ValueError("`lr_decay` argument must be a float in (0, 1] but was {}".format(lr_decay))
 

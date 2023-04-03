@@ -18,10 +18,10 @@ CONFIG_FILE = 'fc_ipllr.yaml'
 # N_TRIALS = 2
 N_TRIALS = 5
 # Ls = [6]  # Total depth n_layers = L + 1
-Ls = [6]  # Total depth n_layers = L + 1
+Ls = [5]  # Total depth n_layers = L + 1
 WIDTHS = [1024]
 N_WARMUP_STEPS = 1
-LR_DECAY = 0.75
+LR_DECAY = 0.89
 
 
 @click.command()
@@ -31,7 +31,7 @@ LR_DECAY = 0.75
               help='How many steps of SGD to take')
 # @click.option('--base_lr', '-lr', required=False, type=click.FLOAT, default=0.01,
 #               help='Which learning rate to use')
-@click.option('--base_lr', '-lr', required=False, type=click.FLOAT, default=0.09,
+@click.option('--base_lr', '-lr', required=False, type=click.FLOAT, default=0.099,
               help='Which learning rate to use')
 @click.option('--batch_size', '-bs', required=False, type=click.INT, default=512,
               help='What batch size to use')

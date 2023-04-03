@@ -345,7 +345,7 @@ class BaseABCParam(BaseModel):
 
         # lr decay if needed
         if (self.scheduler is not None) and (self.scheduler.lr_decay is not None):
-            decay_factor = (self.lr_decay ** self.current_epoch)
+            decay_factor = (self.scheduler.lr_decay ** self.current_epoch)
             new_lr = decay_factor * self.scheduler.base_lr
             logging.info("End of epoch {:,} going into epoch {:,}, new lr is {:.5f}".format(self.current_epoch,
                                                                                             self.current_epoch + 1,
