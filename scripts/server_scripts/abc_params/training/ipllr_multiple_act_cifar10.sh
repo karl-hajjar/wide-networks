@@ -1,6 +1,6 @@
 #!/bin/bash
 
-n_steps=1200
+n_steps=5000
 
 # sbatch scripts/server_scripts/abc_params/training/ipllr.sh "relu" "cifar10" $n_steps
 
