@@ -1,9 +1,12 @@
 #!/bin/bash
 
-n_steps=4000
+n_steps=5000
 
-qsub -v activation="relu",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/ipllr.sh &
-qsub -v activation="gelu",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/ipllr.sh &
-qsub -v activation="elu",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/ipllr.sh &
-qsub -v activation="tanh",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/ipllr.sh
-# qsub -v activation="sigmoid",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/ipllr.sh
+# sbatch scripts/server_scripts/abc_params/training/ipllr.sh "relu" "cifar10" $n_steps
+
+sbatch scripts/server_scripts/abc_params/training/ipllr.sh "relu" "mnist" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/ipllr.sh "gelu" "mnist" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/ipllr.sh "elu" "mnist" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/ipllr.sh "tanh" "mnist" $n_steps
+# sbatch --export=activation="sigmoid",dataset="cifar10",n_steps=$n_steps scripts/server_scripts/abc_params/training/ipllr.sh
+
