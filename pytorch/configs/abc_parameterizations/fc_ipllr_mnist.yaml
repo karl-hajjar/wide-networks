@@ -34,5 +34,5 @@ initializer:
 
 training:
   batch_size: 128
-  n_epochs: 25
-  n_steps: 1.0e+4
+  n_epochs: 35
+  n_steps: 1.2e+4

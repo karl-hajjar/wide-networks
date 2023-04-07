@@ -16,9 +16,7 @@ resources
 tests/*.ipynb
 
 # Experiments
-experiments
-experiments_old
-experiments_copy
+*experiments*
 
 # Logs
 logs
