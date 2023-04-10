@@ -13,7 +13,7 @@
 #SBATCH --error=./%j.stderr
 
 # -- Contexte matériel
-#SBATCH --nodes=10
+#SBATCH --nodes=1
 
 echo $PWD
 
@@ -31,10 +31,10 @@ export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 
 # echo "Env var word=$word"
 echo "Launching Python script from bash with srun WITHOUT ARGS..."
-# srun -N4 python3 scripts/server_scripts/examples/toy_python_script.py --n=2 --word="Karl0"
+# srun -N1 python3 scripts/server_scripts/examples/toy_python_script.py --n=2 --word="Karl0"
 echo "Vars passed to script: $*"
-# srun -N4 python3 scripts/server_scripts/examples/toy_python_script.py --n=2 --word=$1
+# srun -N1 python3 scripts/server_scripts/examples/toy_python_script.py --n=2 --word=$1
 srun -N1 python3 scripts/server_scripts/examples/toy_python_script.py --n=$1 --word=$2
 
 #echo "Launching Python script from bash with srun WITH arg word=$word"
-#srun -N4 python3 scripts/server_scripts/examples/toy_python_script.py --n=3 --word=$word
+#srun -N1 python3 scripts/server_scripts/examples/toy_python_script.py --n=3 --word=$word
