@@ -24,10 +24,12 @@ def split_epoch_step_results(results, pop_keys=('lrs', 'all_losses')):
     return results, popped_results
 
 
-def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, batch_size, bias, n_warmup_steps=None):
+def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, batch_size, bias, n_warmup_steps=None,
+                      test_only=False):
     """
     Loads the results from multiple trials of the same experiment defined by the choice of L, width, activation, lr,
     batch size, bias. Here we allow loading results for multiple experiments with different values for L and width.
+    :param test_only:
     :param Ls:
     :param widths:
     :param n_trials:
@@ -60,7 +62,11 @@ def get_trial_results(Ls, widths, n_trials, exp_dir, base_exp, activation, lr, b
                     logging.warning('results for trial {:,} with L={:,} and m={:,} was not found at {}'\
                                     .format(idx, L, width, results_path))
                 else:
-                    res.append(load_pickle(results_path, single=True))
+                    if test_only:
+                        res_ = load_pickle(results_path, single=True)
+                        res.append(res_['test'])
+                    else:
+                        res.append(load_pickle(results_path, single=True))
             res_dict[L][width] = res
     return res_dict
 
