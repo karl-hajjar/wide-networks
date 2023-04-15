@@ -2,6 +2,7 @@ import os
 import pickle
 import logging
 import numpy as np
+import torch
 
 from torch.utils.data import Dataset, Subset, DataLoader
 import pytorch_lightning as pl
@@ -10,7 +11,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
 from pytorch.job_runners.job_runner import JobRunner
 from pytorch.models.abc_params.base_abc_param import BaseABCParam
-from utils.tools import create_dir, set_up_logger, set_random_seeds
+from utils.tools import create_dir, set_up_logger, set_random_seeds, get_best_model_checkpoint
 from pytorch.configs.model import ModelConfig
 
 
@@ -26,7 +27,7 @@ class ABCRunner(JobRunner):
     def __init__(self, config_dict: dict, base_experiment_path: str, model: BaseABCParam, train_dataset: Dataset,
                  test_dataset: Dataset, val_dataset: Dataset = None, train_ratio: float = 0.8, n_trials: int = 10,
                  early_stopping=False, calibrate_base_lr=False):
-        set_random_seeds(self.SEED)  # set random seed for reproducibility
+        # set_random_seeds(self.SEED)  # set random seed for reproducibility
         self.trial_seeds = np.random.randint(0, 100, size=n_trials)  # define random seeds to use for each trial
 
         self.width = config_dict['architecture']['width']
@@ -153,6 +154,26 @@ class ABCRunner(JobRunner):
                 logging.info("Dumping results at {}".format(results_path))
                 with open(results_path, 'wb') as file:
                     pickle.dump(model.results, file)
+
+                # test pipeline for best model
+                checkpoints_path = os.path.join(self.trial_dir, 'checkpoints')
+                best_checkpoint, best_val_accuracy = get_best_model_checkpoint(checkpoints_path)
+                logger.info("Loading best model with val accuracy {:.3f} from checkpoint {}".format(best_val_accuracy,
+                                                                                                    best_checkpoint))
+                best_checkpoint_path = self.checkpoint_callback.best_model_path
+                best_checkpoint = torch.load(best_checkpoint_path, map_location=lambda storage, loc: storage)
+                config.scheduler = None
+                best_model = self.model(config, **kwargs)
+                best_model.load_state_dict(best_checkpoint['state_dict'])
+
+                best_test_results = trainer.test(model=best_model, test_dataloaders=self.test_data_loader)
+                logger.info('Best model test results :\n{}\n'.format(best_test_results))
+
+                # save best test results to pickle file
+                best_results_path = os.path.join(self.trial_dir, 'best_' + self.RESULTS_FILE)
+                logging.info("Dumping best results at {}".format(best_results_path))
+                with open(best_results_path, 'wb') as file:
+                    pickle.dump(best_model.results, file)
 
             except Exception as e:
                 # dump and save results before exiting

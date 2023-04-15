@@ -1,11 +1,12 @@
 import os
 import logging
 import click
+import torch
 from copy import deepcopy
 
 from pytorch.job_runners.abc_parameterizations.abc_runner import ABCRunner
 from pytorch.models.abc_params.fully_connected.ipllr import FcIPLLR
-from utils.tools import read_yaml
+from utils.tools import read_yaml, set_random_seeds
 
 FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(FILE_DIR)))  # go back 3 times from this directory
@@ -20,11 +21,14 @@ WIDTHS = [1024]
 N_WARMUP_STEPS = 1
 LR_DECAY = None
 # LRs = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
-LRs = [0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.1]
+# LRs = [0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.1]
+LRs = [0.0009]
+
+SEED = 42
 
 
 @click.command()
-@click.option('--activation', '-act', required=False, type=click.STRING, default="relu",
+@click.option('--activation', '-act', required=False, type=click.STRING, default="elu",
               help='Which activation function to use for the network')
 @click.option('--n_steps', '-N', required=False, type=click.INT, default=300,
               help='How many steps of SGD to take')
@@ -41,6 +45,9 @@ def run(activation="relu", n_steps=300, batch_size=512, dataset="mnist", downloa
 
     # define corresponding directory in experiments folder
     base_experiment_path = os.path.join(ROOT, EXPERIMENTS_DIR, model_name)  # base experiment folder
+
+    # set random seed for dataset splitting for reproducibility
+    set_random_seeds(SEED)
 
     # Load data & define models
     logger = logging.getLogger()
@@ -59,8 +66,9 @@ def run(activation="relu", n_steps=300, batch_size=512, dataset="mnist", downloa
 
     # prepare data
     training_dataset, test_dataset = load_data(download=download, flatten=True)
+    training_dataset, val_dataset = torch.utils.data.random_split(training_dataset, [50000, 10000])
     # val_dataset = deepcopy(training_dataset)  # copy train_data into validation_data
-    val_dataset = deepcopy(test_dataset)  # copy test_data into validation_data to keep track of test loss
+    # val_dataset = deepcopy(test_dataset)  # copy test_data into validation_data to keep track of test loss
 
     for base_lr in LRs:
         for L in Ls:

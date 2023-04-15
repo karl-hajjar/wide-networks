@@ -74,3 +74,14 @@ def load_pickle(path, single=False):
                 except EOFError:
                     break
     return results
+
+
+def get_best_model_checkpoint(path):
+    best_val_accuracy = 0.0
+    best_checkpoint = None
+    for f in os.scandir(path):
+        val_accuracy = float(f.name.split('val_accuracy=')[1].split('_')[0])
+        if val_accuracy > best_val_accuracy:
+            best_val_accuracy = val_accuracy
+            best_checkpoint = f.name
+    return best_checkpoint, best_val_accuracy
