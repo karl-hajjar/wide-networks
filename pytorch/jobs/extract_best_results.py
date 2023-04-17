@@ -52,7 +52,12 @@ def run(depth=5, width=1024, n_trials=5, dataset="mnist", model="ipllr"):
                             logger.info(best_results)
                             accuracies.append(best_results['test'][0]['accuracy'])
                         test_accuracy_by_lr_dict[activation][lr] = np.mean(accuracies)
-                        best_lr = max(test_accuracy_by_lr_dict, key=test_accuracy_by_lr_dict.get)
+                        logger.info(test_accuracy_by_lr_dict.keys())
+                        logger.info(test_accuracy_by_lr_dict[activation].keys())
+                        best_lr = max(test_accuracy_by_lr_dict[activation], key=test_accuracy_by_lr_dict[activation].get)
+
+                        logger.info(test_accuracy_by_lr_dict.keys())
+                        logger.info(test_accuracy_by_lr_dict[activation].keys())
 
                         logger.info("For activation {}: best lr = {} with accuracy = {:.5f}".
                                     format(activation, best_lr, test_accuracy_by_lr_dict[activation][best_lr]))
