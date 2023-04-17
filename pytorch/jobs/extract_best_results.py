@@ -19,10 +19,10 @@ BEST_RESULTS_FILE = 'best_results.pickle'
               help='The `L` used in the experiment')
 @click.option('--width', '-m', required=False, type=click.INT, default=1024,
               help='The width `m` used in the experiment')
-@click.option('--dataset', '-ds', required=False, type=click.STRING, default="mnist",
-              help='Which dataset was used in the experiment')
 @click.option('--n_trials', '-N', required=False, type=click.INT, default=5,
               help='The number of trials in the experiment')
+@click.option('--dataset', '-ds', required=False, type=click.STRING, default="mnist",
+              help='Which dataset was used in the experiment')
 @click.option('--model', '-mod', required=False, type=click.STRING, default="ipllr",
               help='Which model was used in the experiment')
 def run(depth=5, width=1024, n_trials=5, dataset="mnist", model="ipllr"):
