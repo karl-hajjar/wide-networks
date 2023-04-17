@@ -15,19 +15,20 @@ EXPERIMENTS_DIR = 'experiments'
 MODEL_NAME = 'fc_ipllr'
 CONFIG_FILE = 'fc_ipllr.yaml'
 
-N_TRIALS = 5
+N_TRIALS = 3
 Ls = [5]  # Total depth n_layers = L + 1
 WIDTHS = [1024]
 N_WARMUP_STEPS = 1
 LR_DECAY = None
-LRs = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
-# LRs = [0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.1]
+LRs = [0.001]
+# LRs = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
+LRs = [0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009]
 
 SEED = 42
 
 
 @click.command()
-@click.option('--activation', '-act', required=False, type=click.STRING, default="elu",
+@click.option('--activation', '-act', required=False, type=click.STRING, default="relu",
               help='Which activation function to use for the network')
 @click.option('--n_steps', '-N', required=False, type=click.INT, default=300,
               help='How many steps of SGD to take')
