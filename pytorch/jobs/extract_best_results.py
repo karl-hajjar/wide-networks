@@ -48,19 +48,12 @@ def run(depth=5, width=1024, n_trials=5, dataset="mnist", model="ipllr"):
                             best_results_path = os.path.join(base_experiments_dir, f.name, 'trial_{}'.format(i),
                                                              BEST_RESULTS_FILE)
                             best_results = load_pickle(best_results_path, single=True)
-                            logger.info(best_results.keys())
-                            logger.info(best_results)
                             accuracies.append(best_results['test'][0]['accuracy'])
                         test_accuracy_by_lr_dict[activation][lr] = np.mean(accuracies)
-                        logger.info(test_accuracy_by_lr_dict.keys())
-                        logger.info(test_accuracy_by_lr_dict[activation].keys())
-                        best_lr = max(test_accuracy_by_lr_dict[activation], key=test_accuracy_by_lr_dict[activation].get)
 
-                        logger.info(test_accuracy_by_lr_dict.keys())
-                        logger.info(test_accuracy_by_lr_dict[activation].keys())
-
-                        logger.info("For activation {}: best lr = {} with accuracy = {:.5f}".
-                                    format(activation, best_lr, test_accuracy_by_lr_dict[activation][best_lr]))
+                best_lr = max(test_accuracy_by_lr_dict[activation], key=test_accuracy_by_lr_dict[activation].get)
+                logger.info("For activation {}: best lr = {} with accuracy = {:.5f}".
+                            format(activation, best_lr, test_accuracy_by_lr_dict[activation][best_lr]))
         except Exception as e:
             logger.exception("Exception while running the best results extraction : {}".format(e))
             raise Exception(e)
