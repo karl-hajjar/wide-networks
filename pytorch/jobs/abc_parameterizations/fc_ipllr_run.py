@@ -82,8 +82,6 @@ def run(activation="relu", n_steps=300, batch_size=512, dataset="mnist", downloa
                                             'params': {'n_warmup_steps': N_WARMUP_STEPS,
                                                        'calibrate_base_lr': True,
                                                        'default_calibration': False}}
-                if activation == "relu":
-                    config_dict['scheduler']['params']['lr_decay'] = LR_DECAY
 
                 runner = ABCRunner(config_dict, base_experiment_path, model=FcIPLLR, train_dataset=training_dataset,
                                    test_dataset=test_dataset, val_dataset=val_dataset, early_stopping=False,

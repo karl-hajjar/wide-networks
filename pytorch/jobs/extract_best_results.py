@@ -48,9 +48,10 @@ def run(depth=5, width=1024, n_trials=5, dataset="mnist", model="ipllr"):
                         for i in range(1, n_trials + 1):
                             best_results_path = os.path.join(base_experiments_dir, f.name, 'trial_{}'.format(i),
                                                              BEST_RESULTS_FILE)
-                            best_results = load_pickle(best_results_path, single=True)
-                            accuracies.append(best_results['test'][0]['accuracy'])
-                        test_accuracy_by_lr_dict[activation][lr] = np.mean(accuracies)
+                            if os.path.exists(best_results_path):
+                                best_results = load_pickle(best_results_path, single=True)
+                                accuracies.append(best_results['test'][0]['accuracy'])
+                                test_accuracy_by_lr_dict[activation][lr] = np.mean(accuracies)
 
                 best_lr = max(test_accuracy_by_lr_dict[activation], key=test_accuracy_by_lr_dict[activation].get)
                 logger.info("For activation {}: best lr = {} with accuracy = {:.5f}".
