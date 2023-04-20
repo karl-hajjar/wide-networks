@@ -10,8 +10,8 @@ FILE_DIR = os.path.abspath(os.path.dirname(__file__))
 ROOT = os.path.dirname(os.path.dirname(FILE_DIR))  # go back 2 times from this directory
 EXPERIMENTS_DIR = 'experiments'
 
-# ACTIVATIONS = ['relu', 'gelu', 'elu', 'tanh']
-ACTIVATIONS = ['relu']
+ACTIVATIONS = ['relu', 'gelu', 'elu', 'tanh']
+# ACTIVATIONS = ['relu']
 BEST_RESULTS_FILE = 'best_results.pickle'
 
 
