@@ -25,6 +25,7 @@ scheduler:
   name: "warmup_switch"
   params:
     n_warmup_steps: 1
+    lr_decay:
 
 initializer:
   name: "custom"
