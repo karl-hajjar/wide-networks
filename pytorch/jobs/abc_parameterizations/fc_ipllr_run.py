@@ -66,7 +66,10 @@ def run(activation="relu", n_steps=300, batch_size=512, dataset="mnist", downloa
 
     # prepare data
     training_dataset, test_dataset = load_data(download=download, flatten=True)
-    training_dataset, val_dataset = torch.utils.data.random_split(training_dataset, [50000, 10000])
+    if dataset == 'mnist':
+        training_dataset, val_dataset = torch.utils.data.random_split(training_dataset, [50000, 10000])
+    elif dataset == 'cifar10':
+        training_dataset, val_dataset = torch.utils.data.random_split(training_dataset, [40000, 10000])
     # val_dataset = deepcopy(training_dataset)  # copy train_data into validation_data
     # val_dataset = deepcopy(test_dataset)  # copy test_data into validation_data to keep track of test loss
 
