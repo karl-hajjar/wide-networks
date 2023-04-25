@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # -- Nom du calcul, répertoire de travail :
-#SBATCH --job-name=karl-ipllr-multiple-cifar
+#SBATCH --job-name=karl-muP-multiple
 #SBATCH --chdir=/workdir2/hajjar/projects/wide-networks/
 
 # -- Optionnel, pour être notifié par email :
