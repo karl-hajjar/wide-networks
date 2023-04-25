@@ -13,7 +13,7 @@
 #SBATCH --error=./%j.stderr
 
 # -- Contexte matériel
-#SBATCH --nodes=1
+#SBATCH --nodes=1 --nodelist=node12
 
 echo "Activating virtualenv ..."
 source activate karl-wide  # activate the virtual environment
@@ -27,4 +27,4 @@ export PYTHONPATH=$PYTHONPATH:"$PWD"  # add wide-networks library to python path
 # --mem=MB permet de définir le taille minimale de mémoire pour chaque processus.
 
 echo "Launching Python script from bash with srun..."
-srun -N1 --nodelist=11 python3 pytorch/jobs/abc_parameterizations/fc_ip_non_centered_run.py --activation=$1 --dataset=$2 --n_steps=$3
+srun -N1 python3 pytorch/jobs/abc_parameterizations/fc_ip_non_centered_run.py --activation=$1 --dataset=$2 --n_steps=$3
