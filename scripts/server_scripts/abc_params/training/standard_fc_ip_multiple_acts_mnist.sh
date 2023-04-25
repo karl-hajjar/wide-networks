@@ -1,9 +1,8 @@
 #!/bin/bash
 
-n_steps=600
+n_steps=6000
 
-qsub -v activation="relu",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/standard_fc_ip.sh &
-qsub -v activation="gelu",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/standard_fc_ip.sh &
-qsub -v activation="elu",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/standard_fc_ip.sh &
-qsub -v activation="tanh",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/standard_fc_ip.sh
-# qsub -v activation="sigmoid",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/standard_fc_ip.sh
+sbatch scripts/server_scripts/abc_params/training/standard_fc_ip.sh "relu" "cifar10" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/standard_fc_ip.sh "gelu" "cifar10" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/standard_fc_ip.sh "elu" "cifar10" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/standard_fc_ip.sh "tanh" "cifar10" $n_steps

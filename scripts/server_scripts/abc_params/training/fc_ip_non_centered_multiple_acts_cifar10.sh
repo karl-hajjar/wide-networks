@@ -1,8 +1,8 @@
 #!/bin/bash
 
-n_steps=1200
+n_steps=6000
 
-qsub -v activation="relu",dataset="cifar10",n_steps=$n_steps scripts/server_scripts/abc_params/training/fc_ip_non_centered.sh &
-qsub -v activation="gelu",dataset="cifar10",n_steps=$n_steps scripts/server_scripts/abc_params/training/fc_ip_non_centered.sh &
-qsub -v activation="elu",dataset="cifar10",n_steps=$n_steps scripts/server_scripts/abc_params/training/fc_ip_non_centered.sh &
-qsub -v activation="tanh",dataset="cifar10",n_steps=$n_steps scripts/server_scripts/abc_params/training/fc_ip_non_centered.sh
+sbatch scripts/server_scripts/abc_params/training/fc_ip_non_centered.sh "relu" "cifar10" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/fc_ip_non_centered.sh "gelu" "cifar10" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/fc_ip_non_centered.sh "elu" "cifar10" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/fc_ip_non_centered.sh "tanh" "cifar10" $n_steps

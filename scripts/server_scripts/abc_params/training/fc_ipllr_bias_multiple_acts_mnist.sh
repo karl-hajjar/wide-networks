@@ -1,8 +1,8 @@
 #!/bin/bash
 
-n_steps=600
+n_steps=5000
 
-qsub -v activation="relu",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/fc_ipllr_bias.sh &
-qsub -v activation="gelu",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/fc_ipllr_bias.sh &
-qsub -v activation="elu",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/fc_ipllr_bias.sh &
-qsub -v activation="tanh",dataset="mnist",n_steps=$n_steps scripts/server_scripts/abc_params/training/fc_ipllr_bias.sh
+sbatch scripts/server_scripts/abc_params/training/fc_ipllr_bias.sh "relu" "mnist" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/fc_ipllr_bias.sh "gelu" "mnist" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/fc_ipllr_bias.sh "elu" "mnist" $n_steps &
+sbatch scripts/server_scripts/abc_params/training/fc_ipllr_bias.sh "tanh" "mnist" $n_steps

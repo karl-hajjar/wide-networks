@@ -1,7 +1,7 @@
 import os
 import logging
 import click
-from copy import deepcopy
+import torch
 
 from pytorch.job_runners.abc_parameterizations.abc_runner import ABCRunner
 from pytorch.models.abc_params.fully_connected.ipllr_bias import FcIPLLRBias
@@ -16,9 +16,12 @@ CONFIG_FILE = 'fc_ipllr'
 CALIBRATE_BASE_LR = False
 
 N_TRIALS = 5
-Ls = [6]  # n_layers = L + 1
+Ls = [5]  # n_layers = L + 1
 WIDTHS = [1024]
 N_WARMUP_STEPS = 1
+# LRs = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
+# LRs = [0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009]
+LRs = [0.0001, 0.0002, 0.0003, 0.0004, 0.0005, 0.0006, 0.0007, 0.0008, 0.0009]
 
 
 @click.command()
@@ -60,24 +63,28 @@ def run(activation="relu", n_steps=300, base_lr=0.01, batch_size=512, dataset="m
 
     # prepare data
     training_dataset, test_dataset = load_data(download=download, flatten=True)
-    val_dataset = deepcopy(training_dataset)  # copy train_data into validation_data
+    if dataset == 'mnist':
+        training_dataset, val_dataset = torch.utils.data.random_split(training_dataset, [50000, 10000])
+    elif dataset == 'cifar10':
+        training_dataset, val_dataset = torch.utils.data.random_split(training_dataset, [40000, 10000])
 
-    for L in Ls:
-        for width in WIDTHS:
-            config_dict['architecture']['width'] = width
-            config_dict['architecture']['n_layers'] = L + 1
-            config_dict['optimizer']['params']['lr'] = base_lr
-            config_dict['activation']['name'] = activation
-            config_dict['training']['n_steps'] = n_steps
-            config_dict['training']['batch_size'] = batch_size
-            config_dict['scheduler'] = {'name': 'warmup_switch_bias',
-                                        'params': {'n_warmup_steps': N_WARMUP_STEPS,
-                                                   'calibrate_base_lr': CALIBRATE_BASE_LR}}
+    for base_lr in LRs:
+        for L in Ls:
+            for width in WIDTHS:
+                config_dict['architecture']['width'] = width
+                config_dict['architecture']['n_layers'] = L + 1
+                config_dict['optimizer']['params']['lr'] = base_lr
+                config_dict['activation']['name'] = activation
+                config_dict['training']['n_steps'] = n_steps
+                config_dict['training']['batch_size'] = batch_size
+                config_dict['scheduler'] = {'name': 'warmup_switch_bias',
+                                            'params': {'n_warmup_steps': N_WARMUP_STEPS,
+                                                       'calibrate_base_lr': CALIBRATE_BASE_LR}}
 
-            runner = ABCRunner(config_dict, base_experiment_path, model=FcIPLLRBias, train_dataset=training_dataset,
-                               test_dataset=test_dataset, val_dataset=val_dataset, early_stopping=False,
-                               n_trials=N_TRIALS, calibrate_base_lr=CALIBRATE_BASE_LR)
-            runner.run(n_warmup_steps=N_WARMUP_STEPS)
+                runner = ABCRunner(config_dict, base_experiment_path, model=FcIPLLRBias, train_dataset=training_dataset,
+                                   test_dataset=test_dataset, val_dataset=val_dataset, early_stopping=False,
+                                   n_trials=N_TRIALS, calibrate_base_lr=CALIBRATE_BASE_LR)
+                runner.run(n_warmup_steps=N_WARMUP_STEPS)
 
 
 if __name__ == '__main__':
