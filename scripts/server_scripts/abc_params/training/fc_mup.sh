@@ -13,7 +13,7 @@
 #SBATCH --error=./%j.stderr
 
 # -- Contexte matériel
-#SBATCH --nodes=1 —nodelist=node11
+#SBATCH --nodes=1 --nodelist=node11
 
 echo "Activating virtualenv ..."
 source activate karl-wide  # activate the virtual environment
