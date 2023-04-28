@@ -31,8 +31,12 @@ def run(depth=5, width=1024, n_trials=5, dataset="mnist", model="ipllr"):
     set_up_logger(os.path.join(ROOT, 'extract.log'))
     logger = logging.getLogger()
 
-    base_experiments_dir = os.path.join(ROOT, EXPERIMENTS_DIR, 'fc_{}_{}', 'L={}_m={}').format(model, dataset, depth,
-                                                                                               width)
+    if 'fc' not in model:
+        model_name = 'fc_{}_{}'.format(model, dataset)
+    else:
+        model_name = '{}_{}'.format(model, dataset)
+
+    base_experiments_dir = os.path.join(ROOT, EXPERIMENTS_DIR, model_name, 'L={}_m={}').format(depth, width)
     if not os.path.exists(base_experiments_dir):
         logger.warning("Path {} does not exits, stopping results extraction.".format(base_experiments_dir))
     else:
@@ -42,7 +46,8 @@ def run(depth=5, width=1024, n_trials=5, dataset="mnist", model="ipllr"):
             for activation in ACTIVATIONS:
                 test_accuracy_by_lr_dict[activation] = dict()
                 for f in os.scandir(base_experiments_dir):
-                    if activation in f.name:
+                    file_act = f.name.split('activation=')[1].split('_')[0]
+                    if file_act == activation:
                         lr = float(f.name.split('lr=')[1].split('_')[0])
                         accuracies = []
                         for i in range(1, n_trials + 1):
