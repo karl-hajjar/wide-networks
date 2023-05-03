@@ -38,7 +38,7 @@ def run(depth=5, width=1024, n_trials=5, dataset="mnist", model="ipllr"):
 
     base_experiments_dir = os.path.join(ROOT, EXPERIMENTS_DIR, model_name, 'L={}_m={}').format(depth, width)
     if not os.path.exists(base_experiments_dir):
-        logger.warning("Path {} does not exits, stopping results extraction.".format(base_experiments_dir))
+        logger.warning("Path {} does not exist, stopping results extraction.".format(base_experiments_dir))
     else:
         try:
             logger.info("Retrieving results from directory : {}".format(base_experiments_dir))
